@@ -186,7 +186,7 @@ input,select,textarea{font-family:var(--font)}
 .owner-avatar.compact-owner{position:absolute;right:8px;bottom:8px;width:22px;height:22px;font-size:10px;box-shadow:0 0 0 2px var(--white)}
 .owner-avatar.inactive{background:#98a2b3!important;color:white}.owner-avatar.unassigned{background:#d0d5dd!important;color:#344054}
 .deal-card.compact{padding:9px 34px 9px 10px}.deal-card.compact .deal-company{padding-right:0;max-width:100%}.deal-card.compact .deal-amount{display:block;line-height:1.2}
-.owner-manager{border:1px solid var(--gray-200);border-radius:12px;overflow:hidden;background:var(--white);margin-bottom:14px}.owner-row{display:grid;grid-template-columns:34px 1fr 72px 120px;gap:10px;align-items:center;padding:9px 12px;border-bottom:1px solid var(--gray-100)}.owner-row:last-child{border-bottom:none}.owner-name{font-size:13px;font-weight:600;color:var(--gray-800)}.owner-sub{font-size:11px;color:var(--gray-400)}.owner-status{font-size:11px;padding:2px 8px;border-radius:99px;text-align:center;font-weight:600}.owner-status.active{background:#d1fae5;color:#065f46}.owner-status.inactive{background:#f2f4f7;color:#667085}.owner-actions{display:flex;gap:6px;justify-content:flex-end}.mini-btn{border:1px solid var(--gray-200);background:var(--white);border-radius:6px;font-size:12px;color:var(--gray-600);padding:5px 8px}.mini-btn:hover{background:var(--gray-50)}.danger-btn{color:#b42318;border-color:#fecdca}.settings-split{display:grid;grid-template-columns:1fr 1fr;gap:12px}.owner-transfer-box{background:var(--gray-50);border:1px solid var(--gray-200);border-radius:12px;padding:12px;margin-top:8px}.modal.wide{width:760px}
+.owner-manager{border:1px solid var(--gray-200);border-radius:12px;overflow:hidden;background:var(--white);margin-bottom:10px}.owner-row{display:grid;grid-template-columns:34px 1fr 72px 120px;gap:10px;align-items:center;padding:9px 12px;border-bottom:1px solid var(--gray-100)}.owner-row:last-child{border-bottom:none}.owner-name{font-size:13px;font-weight:600;color:var(--gray-800)}.owner-sub{font-size:11px;color:var(--gray-400)}.owner-status{font-size:11px;padding:2px 8px;border-radius:99px;text-align:center;font-weight:600}.owner-status.active{background:#d1fae5;color:#065f46}.owner-status.inactive{background:#f2f4f7;color:#667085}.owner-actions{display:flex;gap:6px;justify-content:flex-end}.mini-btn{border:1px solid var(--gray-200);background:var(--white);border-radius:6px;font-size:12px;color:var(--gray-600);padding:5px 8px}.mini-btn:hover{background:var(--gray-50)}.mini-btn:disabled{opacity:.45;cursor:not-allowed}.danger-btn{color:#b42318;border-color:#fecdca}.settings-split{display:grid;grid-template-columns:1fr 1fr;gap:12px}.owner-transfer-box{background:var(--gray-50);border:1px solid var(--gray-200);border-radius:12px;padding:12px;margin-top:8px}.modal.wide{width:760px}.owner-admin-toggle{width:100%;justify-content:center;margin-top:6px}.owner-admin-panel{border:1px solid var(--gray-200);border-radius:14px;padding:14px;margin:12px 0 16px;background:#fcfcfd}.owner-admin-panel.collapsed{display:none}.owner-pager{display:flex;justify-content:center;align-items:center;gap:6px;margin:6px 0 14px}.owner-page-info{font-size:12px;color:var(--gray-500);padding:0 4px}.owner-empty{padding:16px;color:var(--gray-400);text-align:center;font-size:13px}.owner-note-compact{font-size:12px;color:var(--gray-500);background:var(--gray-50);border:1px solid var(--gray-200);padding:10px 12px;border-radius:10px;margin-bottom:12px}
 .form-section-title{font-size:12px;font-weight:600;color:var(--gray-500);margin:8px 0 12px;text-transform:uppercase;letter-spacing:.04em}.hidden{display:none!important}
 @media(max-width:1200px){.stats-row{grid-template-columns:repeat(2,1fr)}.kanban-board{grid-template-columns:repeat(2,1fr)}}
 
@@ -425,33 +425,37 @@ input,select,textarea{font-family:var(--font)}
       </div>
       <div class="form-group">
         <label class="form-label">業務員管理</label>
-        <div class="security-note">業務離職請用「停用」或「停用並轉移」，不要直接刪除，避免歷史客戶與報表斷掉。</div>
+        <button class="btn-cancel owner-admin-toggle" id="owner-admin-toggle" type="button" onclick="toggleOwnerAdminPanel()">👥 開啟業務員管理</button>
       </div>
-      <div class="owner-manager" id="owner-manager"></div>
-      <div class="settings-split">
-        <div class="form-group">
-          <label class="form-label">新增業務員</label>
-          <input class="form-input" id="s-owner-new-name" placeholder="例如：小林、陳業務">
-        </div>
-        <div class="form-group">
-          <label class="form-label">小圓圈顏色</label>
-          <input class="form-input" id="s-owner-new-color" type="color" value="#6366f1">
-        </div>
-      </div>
-      <button class="btn-cancel" type="button" onclick="addOwnerFromSettings()">＋ 新增業務員</button>
-      <div class="owner-transfer-box">
-        <div class="form-section-title">離職 / 轉移案件</div>
+      <div class="owner-admin-panel collapsed" id="owner-admin-panel">
+        <div class="owner-note-compact">業務離職請先轉移名下案件；轉移完成後，該業務會從業務員名單刪除，不再佔版面。</div>
+        <div class="owner-manager" id="owner-manager"></div>
+        <div class="owner-pager" id="owner-pager"></div>
         <div class="settings-split">
           <div class="form-group">
-            <label class="form-label">離職業務</label>
-            <select class="form-input" id="s-transfer-from"></select>
+            <label class="form-label">新增業務員</label>
+            <input class="form-input" id="s-owner-new-name" placeholder="例如：小林、陳業務">
           </div>
           <div class="form-group">
-            <label class="form-label">接手業務</label>
-            <select class="form-input" id="s-transfer-to"></select>
+            <label class="form-label">小圓圈顏色</label>
+            <input class="form-input" id="s-owner-new-color" type="color" value="#6366f1">
           </div>
         </div>
-        <button class="btn-save" type="button" onclick="deactivateAndTransferOwner()">停用並轉移名下案件</button>
+        <button class="btn-cancel" type="button" onclick="addOwnerFromSettings()">＋ 新增業務員</button>
+        <div class="owner-transfer-box">
+          <div class="form-section-title">離職 / 轉移案件</div>
+          <div class="settings-split">
+            <div class="form-group">
+              <label class="form-label">離職業務</label>
+              <select class="form-input" id="s-transfer-from"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">接手業務</label>
+              <select class="form-input" id="s-transfer-to"></select>
+            </div>
+          </div>
+          <button class="btn-save" type="button" onclick="deactivateAndTransferOwner()">轉移案件並刪除此業務</button>
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label">本月成交目標（筆數）</label>
@@ -512,13 +516,55 @@ function setOwnersData(list){ localStorage.setItem('crm_owners_v2', JSON.stringi
 function normalizeOwnerRow(r){ return {id:String(r[0]||('owner_'+Date.now())),name:String(r[1]||'').trim(),short:String(r[2]||r[1]||'?').trim().charAt(0)||'?',color:String(r[3]||'#6366f1'),status:String(r[4]||'active')==='inactive'?'inactive':'active',email:String(r[5]||''),leave_date:String(r[6]||''),replacement_owner:String(r[7]||''),created_at:String(r[8]||''),updated_at:String(r[9]||'')}; }
 function getOwnerProfile(name){ const n=String(name||'').trim(); return CFG.ownersData.find(o=>o.name===n) || (n?{name:n,short:n.charAt(0),color:'#98a2b3',status:'inactive'}:{name:'待分派',short:'待',color:'#d0d5dd',status:'unassigned'}); }
 function ownerAvatarHTML(name, extraClass=''){ const o=getOwnerProfile(name); const cls='owner-avatar '+extraClass+' '+(o.status==='inactive'?'inactive':o.status==='unassigned'?'unassigned':''); const title=o.status==='inactive'?`原負責業務：${o.name}（已停用）`:o.status==='unassigned'?'待分派':`負責業務：${o.name}`; return `<div class="${cls}" style="background:${o.color}" title="${esc(title)}">${esc(o.short||'?')}</div>`; }
-function renderOwnerManager(){ const list=CFG.ownersData; const wrap=document.getElementById('owner-manager'); if(wrap){ wrap.innerHTML=list.map(o=>{const count=state.deals.filter(d=>d.owner===o.name).length; return `<div class="owner-row"><div>${ownerAvatarHTML(o.name)}</div><div><div class="owner-name">${esc(o.name)}</div><div class="owner-sub">名下 ${count} 筆案件</div></div><div><span class="owner-status ${o.status}">${o.status==='inactive'?'停用':'在職'}</span></div><div class="owner-actions"><button class="mini-btn" onclick="toggleOwnerStatus('${esc(o.id)}')">${o.status==='inactive'?'啟用':'停用'}</button></div></div>`;}).join('')||'<div style="padding:16px;color:var(--gray-400);text-align:center">尚無業務員</div>'; } const from=document.getElementById('s-transfer-from'),to=document.getElementById('s-transfer-to'); if(from&&to){ from.innerHTML=list.map(o=>`<option value="${esc(o.name)}">${esc(o.name)}${o.status==='inactive'?'（停用）':''}</option>`).join(''); to.innerHTML=list.filter(o=>o.status!=='inactive').map(o=>`<option value="${esc(o.name)}">${esc(o.name)}</option>`).join(''); } }
-function addOwnerFromSettings(){ const name=document.getElementById('s-owner-new-name').value.trim(); const color=document.getElementById('s-owner-new-color').value||'#6366f1'; if(!name){toast('請輸入業務員名稱','error');return;} const list=CFG.ownersData; if(list.some(o=>o.name===name)){toast('這位業務員已存在','error');return;} list.push({id:'owner_'+Date.now(),name,short:name.charAt(0),color,status:'active',created_at:new Date().toISOString()}); setOwnersData(list); document.getElementById('s-owner-new-name').value=''; renderOwnerManager(); updateOwnerFilters(); }
-function toggleOwnerStatus(id){ const list=CFG.ownersData; const owner=list.find(o=>o.id===id); if(!owner)return; if(owner.status==='inactive'){owner.status='active'; owner.leave_date='';}else{ const count=state.deals.filter(d=>d.owner===owner.name).length; if(count>0&&!confirm(`${owner.name} 名下還有 ${count} 筆案件。建議使用下方「停用並轉移」。仍要只停用嗎？`))return; owner.status='inactive'; owner.leave_date=new Date().toISOString().slice(0,10);} setOwnersData(list); renderOwnerManager(); updateOwnerFilters(); renderAll(); }
-async function deactivateAndTransferOwner(){ const from=document.getElementById('s-transfer-from').value; const to=document.getElementById('s-transfer-to').value; if(!from||!to||from===to){toast('請選擇不同的離職業務與接手業務','error');return;} const count=state.deals.filter(d=>d.owner===from).length; if(!confirm(`確定將 ${from} 名下 ${count} 筆案件轉移給 ${to}，並停用 ${from}？`))return; state.deals.forEach(d=>{if(d.owner===from)d.owner=to}); const list=CFG.ownersData; const owner=list.find(o=>o.name===from); if(owner){owner.status='inactive'; owner.leave_date=new Date().toISOString().slice(0,10); owner.replacement_owner=to;} setOwnersData(list); renderOwnerManager(); updateOwnerFilters(); renderAll(); if(CFG.url){ await callAPI({action:'saveOwners',owners:JSON.stringify(list)}); await callAPI({action:'transferOwner',from_owner:from,to_owner:to}); } toast(`✓ 已轉移 ${count} 筆案件給 ${to}`,'success'); }
+function getVisibleOwnersForManager(){ return CFG.ownersData.filter(o=>o.status!=='inactive'); }
+function toggleOwnerAdminPanel(forceOpen){
+  const panel=document.getElementById('owner-admin-panel');
+  const btn=document.getElementById('owner-admin-toggle');
+  if(!panel)return;
+  const shouldOpen=forceOpen===true?true:forceOpen===false?false:panel.classList.contains('collapsed');
+  panel.classList.toggle('collapsed',!shouldOpen);
+  if(btn)btn.textContent=shouldOpen?'👥 收合業務員管理':'👥 開啟業務員管理';
+  if(shouldOpen)renderOwnerManager();
+}
+function changeOwnerPage(page){ const pages=Math.ceil(getVisibleOwnersForManager().length/4)||1; ownerManagerPage=Math.max(1,Math.min(page,pages)); renderOwnerManager(); }
+function focusTransferOwner(name){ toggleOwnerAdminPanel(true); const from=document.getElementById('s-transfer-from'); if(from)from.value=name; const box=document.querySelector('.owner-transfer-box'); if(box)box.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+async function deleteOwnerDirect(id){
+  const list=CFG.ownersData; const owner=list.find(o=>o.id===id); if(!owner)return;
+  const count=state.deals.filter(d=>d.owner===owner.name).length;
+  if(count>0){ toast(`請先轉移 ${owner.name} 名下 ${count} 筆案件，再刪除業務員`,'error'); focusTransferOwner(owner.name); return; }
+  if(!confirm(`確定刪除業務員「${owner.name}」？`))return;
+  const next=list.filter(o=>o.id!==id); setOwnersData(next);
+  if(ownerManagerPage>Math.ceil(getVisibleOwnersForManager().length/4))ownerManagerPage=Math.max(1,ownerManagerPage-1);
+  renderOwnerManager(); updateOwnerFilters(); renderAll();
+  if(CFG.url)await callAPI({action:'saveOwners',owners:JSON.stringify(next)});
+  toast(`✓ 已刪除業務員 ${owner.name}`,'success');
+}
+function renderOwnerManager(){
+  const list=getVisibleOwnersForManager(); const wrap=document.getElementById('owner-manager'); const pager=document.getElementById('owner-pager');
+  const perPage=4,pages=Math.ceil(list.length/perPage)||1; ownerManagerPage=Math.max(1,Math.min(ownerManagerPage,pages));
+  const slice=list.slice((ownerManagerPage-1)*perPage,ownerManagerPage*perPage);
+  if(wrap){ wrap.innerHTML=slice.map(o=>{ const count=state.deals.filter(d=>d.owner===o.name).length; const action=count>0?`<button class="mini-btn" onclick="focusTransferOwner('${esc(o.name)}')">轉移</button>`:`<button class="mini-btn danger-btn" onclick="deleteOwnerDirect('${esc(o.id)}')">刪除</button>`; return `<div class="owner-row"><div>${ownerAvatarHTML(o.name)}</div><div><div class="owner-name">${esc(o.name)}</div><div class="owner-sub">名下 ${count} 筆案件</div></div><div><span class="owner-status active">在職</span></div><div class="owner-actions">${action}</div></div>`; }).join('')||'<div class="owner-empty">尚無業務員</div>'; }
+  if(pager){ pager.innerHTML=pages<=1?'':`<button class="mini-btn" ${ownerManagerPage===1?'disabled':''} onclick="changeOwnerPage(${ownerManagerPage-1})">上一頁</button><span class="owner-page-info">第 ${ownerManagerPage} / ${pages} 頁</span><button class="mini-btn" ${ownerManagerPage===pages?'disabled':''} onclick="changeOwnerPage(${ownerManagerPage+1})">下一頁</button>`; }
+  const from=document.getElementById('s-transfer-from'),to=document.getElementById('s-transfer-to');
+  if(from&&to){ const namesInDeals=[...new Set(state.deals.map(d=>String(d.owner||'').trim()).filter(Boolean))]; const allNames=[...new Set([...CFG.ownersData.map(o=>o.name),...namesInDeals])].filter(Boolean); from.innerHTML=allNames.map(name=>{const count=state.deals.filter(d=>d.owner===name).length;return `<option value="${esc(name)}">${esc(name)}（${count}筆）</option>`;}).join(''); to.innerHTML=list.map(o=>`<option value="${esc(o.name)}">${esc(o.name)}</option>`).join(''); }
+}
+function addOwnerFromSettings(){ const name=document.getElementById('s-owner-new-name').value.trim(); const color=document.getElementById('s-owner-new-color').value||'#6366f1'; if(!name){toast('請輸入業務員名稱','error');return;} const list=CFG.ownersData; if(list.some(o=>o.name===name)){toast('這位業務員已存在','error');return;} list.push({id:'owner_'+Date.now(),name,short:name.charAt(0),color,status:'active',created_at:new Date().toISOString()}); setOwnersData(list); document.getElementById('s-owner-new-name').value=''; ownerManagerPage=Math.ceil(getVisibleOwnersForManager().length/4)||1; renderOwnerManager(); updateOwnerFilters(); }
+function toggleOwnerStatus(id){ deleteOwnerDirect(id); }
+async function deactivateAndTransferOwner(){
+  const from=document.getElementById('s-transfer-from').value; const to=document.getElementById('s-transfer-to').value;
+  if(!from||!to||from===to){toast('請選擇不同的離職業務與接手業務','error');return;}
+  const count=state.deals.filter(d=>d.owner===from).length;
+  if(!confirm(`確定將 ${from} 名下 ${count} 筆案件轉移給 ${to}，並從業務員名單刪除 ${from}？`))return;
+  state.deals.forEach(d=>{if(d.owner===from)d.owner=to});
+  const nextList=CFG.ownersData.filter(o=>o.name!==from); setOwnersData(nextList); ownerManagerPage=1;
+  renderOwnerManager(); updateOwnerFilters(); renderAll();
+  if(CFG.url){ await callAPI({action:'transferOwner',from_owner:from,to_owner:to}); await callAPI({action:'saveOwners',owners:JSON.stringify(nextList)}); }
+  toast(`✓ 已轉移 ${count} 筆案件給 ${to}，並刪除 ${from}`,'success');
+}
 
 let sortState = { col: null, dir: 'asc' };
 let state = { deals: [...DEMO], activities: [], currentPage: 1, editingId: null, pipelineMode: 'all', expandedCardId: null };
+let ownerManagerPage = 1;
 function toggleSort(col){ sortState.col===col ? sortState.dir=(sortState.dir==='asc'?'desc':'asc') : (sortState.col=col, sortState.dir='asc'); state.currentPage=1; renderList(); }
 function setPipelineMode(mode){ state.pipelineMode=mode; document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active')); const el=document.getElementById('mode-'+mode); if(el) el.classList.add('active'); renderKanban(); }
 function normalizeDealRow(r){
@@ -579,7 +625,7 @@ function openDealModal(id,defaultStage){ state.editingId=id; const d=id?state.de
 async function saveDeal(){ let valid=true; ['company','contact'].forEach(k=>{const v=document.getElementById('f-'+k).value.trim(); if(!v){document.getElementById('e-'+k).textContent='必填欄位';document.getElementById('f-'+k).classList.add('error');valid=false}else{document.getElementById('e-'+k).textContent='';document.getElementById('f-'+k).classList.remove('error')}}); const email=document.getElementById('f-email').value.trim(); if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){document.getElementById('e-email').textContent='Email 格式不正確';document.getElementById('f-email').classList.add('error');valid=false} if(!valid)return; const billing=document.getElementById('f-billing').value; const oneTime=Number(document.getElementById('f-one-time-amount').value)||0; const monthly=Number(document.getElementById('f-monthly-fee').value)||0; const params={action:state.editingId?'updateDeal':'addDeal',id:state.editingId||'',company:document.getElementById('f-company').value.trim(),contact:document.getElementById('f-contact').value.trim(),phone:document.getElementById('f-phone').value.trim(),email:document.getElementById('f-email').value.trim(),stage:document.getElementById('f-stage').value,amount:billing==='monthly'?monthly:oneTime,probability:Number(document.getElementById('f-prob').value)||0,close_date:document.getElementById('f-date').value,owner:document.getElementById('f-owner').value,type:document.getElementById('f-type').value,notes:document.getElementById('f-notes').value.trim(),billing_type:billing,one_time_amount:oneTime,monthly_fee:monthly,setup_fee:Number(document.getElementById('f-setup-fee').value)||0,contract_end_date:document.getElementById('f-contract-end').value,renewal_date:document.getElementById('f-renewal-date').value}; const btn=document.getElementById('btn-save-deal'); btn.disabled=true;btn.textContent='⏳ 儲存中...'; if(state.editingId){const old=state.deals.find(d=>d.id===state.editingId); if(old)Object.assign(old,params)}else{state.deals.push({...params,id:Date.now().toString(),created_at:new Date().toISOString()})} closeModal('deal-modal'); renderAll(); toast(`✓ ${params.company} 已${state.editingId?'更新':'新增'}`,'success'); await callAPI(params); btn.disabled=false; btn.textContent='儲存'; }
 async function deleteDeal(id){ const deal=state.deals.find(d=>d.id===id); if(!deal)return; if(!confirm(`確定要刪除「${deal.company}」嗎？`))return; state.deals=state.deals.filter(d=>d.id!==id); renderAll(); toast(`🗑️ ${deal.company} 已刪除`,'success'); await callAPI({action:'deleteDeal',id}); }
 function importExcel(input){ const file=input.files[0]; if(!file)return; const reader=new FileReader(); reader.onload=function(e){ try{ const wb=XLSX.read(e.target.result,{type:'binary'}); const ws=wb.Sheets[wb.SheetNames[0]]; const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''}); if(!rows.length){toast('❌ 檔案無資料','error');input.value='';return} let startRow=0; const headerText=rows[0].map(v=>String(v||'').trim().toLowerCase()).join('|'); if(/公司|客戶|company|聯絡人|contact|計費|billing|型態|type/.test(headerText))startRow=1; const validStages=['潛在客戶','資格確認','報價中','已成交']; let imported=0,skipped=0; for(let i=startRow;i<rows.length;i++){const row=rows[i]; const company=String(row[0]||'').trim(),contact=String(row[1]||'').trim(); if(!company||!contact){skipped++;continue} const billingTxt=String(row[5]||'').trim(); const billing=(billingTxt.includes('月')||billingTxt==='monthly')?'monthly':'one_time'; const importedDeal={id:Date.now().toString()+'_'+i,company,contact,phone:String(row[2]||'').trim(),email:String(row[3]||'').trim(),stage:validStages.includes(String(row[4]||'').trim())?String(row[4]).trim():'潛在客戶',billing_type:billing,one_time_amount:Number(row[6])||0,monthly_fee:Number(row[7])||0,setup_fee:Number(row[8])||0,amount:billing==='monthly'?(Number(row[7])||0):(Number(row[6])||0),probability:50,close_date:String(row[9]||'').trim(),owner:String(row[10]||'').trim(),type:TYPE_OPTIONS.includes(String(row[11]||'').trim())?String(row[11]).trim():'廟宇',contract_end_date:String(row[12]||'').trim(),renewal_date:String(row[13]||'').trim(),notes:String(row[14]||'').trim(),created_at:new Date().toISOString()}; state.deals.push(importedDeal); if(CFG.url)callAPI({action:'addDeal',...importedDeal}); imported++;} if(imported>0){renderAll();toast(`✓ 成功匯入 ${imported} 筆${skipped?'（跳過 '+skipped+' 筆空白列）':''}`,'success')}else toast('❌ 無法匯入：請確認 A=客戶 B=聯絡人','error'); }catch(err){toast('❌ 匯入失敗：'+err.message,'error')} input.value='';}; reader.readAsBinaryString(file); }
-function openSettings(){ document.getElementById('s-url').value=CFG.url; const g=CFG.goals; document.getElementById('s-goal-deals').value=g.deals; document.getElementById('s-goal-amount').value=g.amount; document.getElementById('s-goal-clients').value=g.clients; renderOwnerManager(); document.getElementById('settings-modal').classList.add('open'); }
+function openSettings(){ document.getElementById('s-url').value=CFG.url; const g=CFG.goals; document.getElementById('s-goal-deals').value=g.deals; document.getElementById('s-goal-amount').value=g.amount; document.getElementById('s-goal-clients').value=g.clients; ownerManagerPage=1; renderOwnerManager(); toggleOwnerAdminPanel(false); document.getElementById('settings-modal').classList.add('open'); }
 async function saveSettings(){ const url=document.getElementById('s-url').value.trim(); const goals={deals:Number(document.getElementById('s-goal-deals').value)||10,amount:Number(document.getElementById('s-goal-amount').value)||2000000,clients:Number(document.getElementById('s-goal-clients').value)||15}; localStorage.setItem('crm_url',url); localStorage.setItem('crm_goals',JSON.stringify(goals)); if(url){setConn(true); await callAPI({action:'saveOwners',owners:JSON.stringify(CFG.ownersData)}); syncData(); } closeModal('settings-modal'); toast('✓ 設定已儲存','success'); updateOwnerFilters();renderAll(); }
 function switchPage(name,btn){ document.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active')); document.getElementById('page-'+name).classList.add('active'); if(btn)btn.classList.add('active'); }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
