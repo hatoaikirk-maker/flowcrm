@@ -218,7 +218,7 @@ input,select,textarea{font-family:var(--font)}
   <div class="kanban-toolbar">
     <div class="search-box">
       <span>🔍</span>
-      <input type="text" id="kanban-search" placeholder="搜尋公司或聯絡人..." oninput="renderKanban()">
+      <input type="text" id="kanban-search" placeholder="搜尋客戶／宮廟或聯絡人..." oninput="renderKanban()">
     </div>
     <select class="filter-select" id="kanban-owner" onchange="renderKanban()">
       <option value="">所有業務員</option>
@@ -253,7 +253,7 @@ input,select,textarea{font-family:var(--font)}
   </div>
   <table class="data-table">
     <thead><tr>
-      <th onclick="toggleSort('company')" style="cursor:pointer;user-select:none">公司 <span id="sort-company">↕</span></th>
+      <th onclick="toggleSort('company')" style="cursor:pointer;user-select:none">客戶／宮廟 <span id="sort-company">↕</span></th>
       <th onclick="toggleSort('contact')" style="cursor:pointer;user-select:none">聯絡人 <span id="sort-contact">↕</span></th>
       <th onclick="toggleSort('phone')" style="cursor:pointer;user-select:none">電話 <span id="sort-phone">↕</span></th>
       <th onclick="toggleSort('email')" style="cursor:pointer;user-select:none">Email <span id="sort-email">↕</span></th>
@@ -277,8 +277,8 @@ input,select,textarea{font-family:var(--font)}
     <div class="modal-body">
       <div class="form-row">
         <div class="form-group half">
-          <label class="form-label">公司名稱 <span>*</span></label>
-          <input class="form-input" id="f-company" placeholder="台積電">
+          <label class="form-label">客戶／宮廟名稱 <span>*</span></label>
+          <input class="form-input" id="f-company" placeholder="關渡宮">
           <div class="form-error" id="e-company"></div>
         </div>
         <div class="form-group half">
@@ -638,7 +638,7 @@ async function deleteDeal(id) {
   await callAPI({ action:'deleteDeal', id });
 }
 // Excel 匯入：使用 SheetJS 解析 .xlsx/.xls/.csv
-// 欄位對應：A=company B=contact C=phone D=email E=stage F=amount G=probability H=close_date I=owner J=type K=notes
+// 欄位對應：A=客戶／宮廟名稱 B=聯絡人 C=電話 D=Email E=階段 F=金額 G=成交機率 H=預計成交日 I=業務員 J=型態 K=備註
 function importExcel(input) {
   const file = input.files[0];
   if (!file) return;
@@ -668,7 +668,7 @@ function importExcel(input) {
         const row = rows[i];
         const company = String(row[0]||'').trim();
         const contact = String(row[1]||'').trim();
-        // 公司和聯絡人都必填，否則跳過
+        // 客戶／宮廟名稱和聯絡人都必填，否則跳過
         if (!company || !contact) { skipped++; continue; }
 
         const stage = validStages.includes(String(row[4]||'').trim()) ? String(row[4]).trim() : '潛在客戶';
@@ -700,7 +700,7 @@ function importExcel(input) {
         renderAll();
         toast(`✓ 成功匯入 ${imported} 筆${skipped?'（跳過 '+skipped+' 筆空白列）':''}`, 'success');
       } else {
-        toast('❌ 無法匯入：欄位格式不符，請確認 A=公司 B=聯絡人', 'error');
+        toast('❌ 無法匯入：欄位格式不符，請確認 A=客戶／宮廟名稱 B=聯絡人', 'error');
       }
     } catch(err) {
       toast('❌ 匯入失敗：' + err.message, 'error');
