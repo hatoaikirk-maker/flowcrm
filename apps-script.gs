@@ -1,4 +1,4 @@
-const SHEET_ID = '16iwGFQ_JkS7eg3DNHOlxxW1OjifORYgB3Z4_Fv7-1aQ';
+const SHEET_ID = 'YOUR_SHEET_ID_HERE'; // 貼到 Apps Script 時再填入你的 Sheet ID
 function doGet(e){return handle(e)}
 function doPost(e){return handle(e)}
 function handle(e){
@@ -16,4 +16,4 @@ function handle(e){
   }catch(err){result={ok:false,error:err.toString()}}
   return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON)
 }
-function log(ss,dealId,action){ss.getSheetByName('activities').appendRow([Date.now().toString(),dealId,action,new Date().toISOString()])}
+function log(ss,dealId,action){ss.getSheetByName('activities').appendRow([Date.now().toString(),dealId,action,new 
