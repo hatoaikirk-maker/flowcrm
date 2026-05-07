@@ -482,6 +482,7 @@ input,select,textarea{font-family:var(--font)}
 // v7：業務員不再用前端預設名單。
 // 所有業務員以 Google Sheets「業務員」分頁為準，避免不同電腦出現不同預設業務。
 const DEFAULT_OWNERS = [];
+const DEFAULT_OWNER_NAMES = ['陳業務','林業務','王業務'];
 const CFG = {
   get url()     { return localStorage.getItem('crm_url') || '' },
   get ownersData() { return getOwnersData(); },
@@ -503,28 +504,42 @@ const DEMO = [
   {id:'6',company:'中華電信',contact:'張建國',phone:'',email:'',stage:'資格確認',amount:0,one_time_amount:0,monthly_fee:60000,setup_fee:120000,probability:45,close_date:'2026-07-20',owner:'',type:'支付',billing_type:'monthly',renewal_date:'2027-01-31',notes:'',created_at:'2026-05-04'},
 ];
 
-function getOwnersData(){
-  const v2=localStorage.getItem('crm_owners_v2');
-  if(v2){ try{return JSON.parse(v2).filter(o=>o&&o.name)}catch{} }
-  const legacy=(localStorage.getItem('crm_owners')||'').split(',').map(s=>s.trim()).filter(Boolean);
-  if(legacy.length){ const migrated=legacy.map((name,i)=>({id:'owner_legacy_'+i,name,short:name.charAt(0)||'?',color:OWNER_COLORS[i%OWNER_COLORS.length],status:'active'})); setOwnersData(migrated); localStorage.removeItem('crm_owners'); return migrated; }
-  setOwnersData(DEFAULT_OWNERS); return DEFAULT_OWNERS;
+function isDefaultOwnerName(name){ return DEFAULT_OWNER_NAMES.includes(String(name||'').trim()); }
+function getOwnerDealCount(name){ return state && state.deals ? state.deals.filter(d=>String(d.owner||'').trim()===String(name||'').trim()).length : 0; }
+function cleanOwnerList(list, removeZeroCaseDefaults=false){
+  const seen = new Set();
+  return (list||[]).filter(o=>o&&String(o.name||'').trim()).filter(o=>{
+    o.name = String(o.name||'').trim();
+    if (seen.has(o.name)) return false;
+    seen.add(o.name);
+    if (isDefaultOwnerName(o.name) && removeZeroCaseDefaults && getOwnerDealCount(o.name)===0) return false;
+    return true;
+  });
 }
-function setOwnersData(list){ localStorage.setItem('crm_owners_v2', JSON.stringify(list.map((o,i)=>({id:o.id||('owner_'+Date.now()+'_'+i),name:String(o.name||'').trim(),short:String(o.short||o.name||'?').trim().charAt(0)||'?',color:o.color||OWNER_COLORS[i%OWNER_COLORS.length],status:o.status==='inactive'?'inactive':'active',email:o.email||'',leave_date:o.leave_date||'',replacement_owner:o.replacement_owner||'',created_at:o.created_at||new Date().toISOString(),updated_at:new Date().toISOString()})).filter(o=>o.name))); }
+function clearLegacyDefaultOwners(){
+  const legacyRaw = localStorage.getItem('crm_owners') || '';
+  const legacy = legacyRaw.split(',').map(s=>s.trim()).filter(Boolean);
+  if (legacy.length && legacy.every(isDefaultOwnerName)) localStorage.removeItem('crm_owners');
 
-function clearDefaultOwnersIfOnlyDefault(){
   const raw = localStorage.getItem('crm_owners_v2');
   if (!raw) return;
   try {
     const list = JSON.parse(raw)||[];
-    const names = list.map(o=>String(o.name||'').trim()).sort().join(',');
-    if (names === ['王業務','林業務','陳業務'].sort().join(',')) {
-      localStorage.removeItem('crm_owners_v2');
-      localStorage.removeItem('crm_owners');
-    }
-  } catch(e) {}
+    const cleaned = cleanOwnerList(list, true);
+    if (cleaned.length !== list.length) localStorage.setItem('crm_owners_v2', JSON.stringify(cleaned));
+  } catch(e) { localStorage.removeItem('crm_owners_v2'); }
 }
-clearDefaultOwnersIfOnlyDefault();
+clearLegacyDefaultOwners();
+
+function getOwnersData(){
+  clearLegacyDefaultOwners();
+  const v2=localStorage.getItem('crm_owners_v2');
+  if(v2){ try{return cleanOwnerList(JSON.parse(v2), true)}catch{} }
+  const legacy=(localStorage.getItem('crm_owners')||'').split(',').map(s=>s.trim()).filter(Boolean).filter(name=>!isDefaultOwnerName(name));
+  if(legacy.length){ const migrated=legacy.map((name,i)=>({id:'owner_legacy_'+i,name,short:name.charAt(0)||'?',color:OWNER_COLORS[i%OWNER_COLORS.length],status:'active'})); setOwnersData(migrated); localStorage.removeItem('crm_owners'); return migrated; }
+  setOwnersData(DEFAULT_OWNERS); return DEFAULT_OWNERS;
+}
+function setOwnersData(list){ localStorage.setItem('crm_owners_v2', JSON.stringify(cleanOwnerList(list, true).map((o,i)=>({id:o.id||('owner_'+Date.now()+'_'+i),name:String(o.name||'').trim(),short:String(o.short||o.name||'?').trim().charAt(0)||'?',color:o.color||OWNER_COLORS[i%OWNER_COLORS.length],status:o.status==='inactive'?'inactive':'active',email:o.email||'',leave_date:o.leave_date||'',replacement_owner:o.replacement_owner||'',created_at:o.created_at||new Date().toISOString(),updated_at:new Date().toISOString()})).filter(o=>o.name))); }
 function normalizeOwnerRow(r){ return {id:String(r[0]||('owner_'+Date.now())),name:String(r[1]||'').trim(),short:String(r[2]||r[1]||'?').trim().charAt(0)||'?',color:String(r[3]||'#6366f1'),status:String(r[4]||'active')==='inactive'?'inactive':'active',email:String(r[5]||''),leave_date:String(r[6]||''),replacement_owner:String(r[7]||''),created_at:String(r[8]||''),updated_at:String(r[9]||'')}; }
 function getOwnerProfile(name){ const n=String(name||'').trim(); return CFG.ownersData.find(o=>o.name===n) || (n?{name:n,short:n.charAt(0),color:'#98a2b3',status:'inactive'}:{name:'待分派',short:'待',color:'#d0d5dd',status:'unassigned'}); }
 function ownerAvatarHTML(name, extraClass=''){ const o=getOwnerProfile(name); const cls='owner-avatar '+extraClass+' '+(o.status==='inactive'?'inactive':o.status==='unassigned'?'unassigned':''); const title=o.status==='inactive'?`原負責業務：${o.name}（已停用）`:o.status==='unassigned'?'待分派':`負責業務：${o.name}`; return `<div class="${cls}" style="background:${o.color}" title="${esc(title)}">${esc(o.short||'?')}</div>`; }
