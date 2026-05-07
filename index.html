@@ -169,6 +169,22 @@ input,select,textarea{font-family:var(--font)}
 .toast.error{border-color:#fca5a5;background:#fef2f2;color:#991b1b}
 @keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
 @keyframes toastOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(20px)}}
+
+/* v4 compact pipeline + billing model */
+.stats-row{grid-template-columns:repeat(4,1fr)}
+.pipeline-mode{display:flex;align-items:center;gap:4px;background:var(--white);border:1px solid var(--gray-200);border-radius:8px;padding:3px}
+.mode-btn{border:none;background:transparent;color:var(--gray-500);font-size:12.5px;font-weight:500;padding:5px 10px;border-radius:6px;transition:.15s}
+.mode-btn.active{background:var(--accent-light);color:var(--accent)}
+.kanban-board{gap:12px}.kanban-col{background:var(--white)}
+.col-header{padding:13px 16px 0}.col-amount{padding:6px 16px 10px}
+.col-cards{padding:10px 10px 12px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;align-items:start}.col-empty{grid-column:1/-1}
+.deal-card{border:.8px solid var(--gray-200);border-radius:8px;padding:9px 10px;min-height:58px;box-shadow:var(--shadow-xs);cursor:pointer;overflow:hidden}.deal-card:hover{transform:translateY(-1px)}
+.deal-card.compact .card-actions,.deal-card.compact .deal-contact,.deal-card.compact .deal-meta .deal-prob-wrap,.deal-card.compact .deal-footer{display:none}.deal-card.compact .deal-company{font-size:13px;line-height:1.25;margin:0 0 5px;padding-right:0;white-space:nowrap}.deal-card.compact .deal-meta{margin:0;display:block}.deal-card.compact .deal-amount{font-size:12.5px;color:var(--gray-500);font-weight:500}
+.deal-card.expanded{grid-column:1/-1;padding:16px;border:1.2px solid var(--proposal);box-shadow:0 8px 24px rgba(139,92,246,.12);min-height:164px;cursor:grab}.deal-card.expanded .deal-company{font-size:16px;margin-bottom:4px;padding-right:56px}.deal-card.expanded .deal-contact{display:block;margin-bottom:12px}.deal-card.expanded .deal-meta{margin-bottom:12px}.deal-card.expanded .deal-amount{font-size:18px;color:var(--gray-900)}.deal-card.expanded .deal-footer{display:flex}.deal-card.expanded .card-actions{opacity:1}
+.billing-pill{font-size:10.5px;padding:2px 7px;border-radius:99px;font-weight:600}.billing-one{background:#eff6ff;color:#1d4ed8}.billing-monthly{background:#ecfdf5;color:#047857}
+.add-card-btn{grid-column:1/-1;margin-top:4px;padding:10px}.form-section-title{font-size:12px;font-weight:600;color:var(--gray-500);margin:8px 0 12px;text-transform:uppercase;letter-spacing:.04em}.hidden{display:none!important}
+@media(max-width:1200px){.stats-row{grid-template-columns:repeat(2,1fr)}.kanban-board{grid-template-columns:repeat(2,1fr)}}
+
 </style>
 </head>
 <body>
@@ -223,6 +239,11 @@ input,select,textarea{font-family:var(--font)}
     <select class="filter-select" id="kanban-owner" onchange="renderKanban()">
       <option value="">所有業務員</option>
     </select>
+    <div class="pipeline-mode" aria-label="計費類型篩選">
+      <button class="mode-btn active" id="mode-all" onclick="setPipelineMode('all')">全部</button>
+      <button class="mode-btn" id="mode-one_time" onclick="setPipelineMode('one_time')">單次</button>
+      <button class="mode-btn" id="mode-monthly" onclick="setPipelineMode('monthly')">月付</button>
+    </div>
     <div class="total-info" id="kanban-total"></div>
   </div>
   <div class="kanban-board" id="kanban-board"></div>
@@ -237,6 +258,10 @@ input,select,textarea{font-family:var(--font)}
       <option value="">所有階段</option>
       <option>潛在客戶</option><option>資格確認</option>
       <option>報價中</option><option>已成交</option>
+    </select>
+    <select class="filter-select" id="list-billing" onchange="state.currentPage=1;renderList()">
+      <option value="">所有計費</option>
+      <option value="one_time">單次</option><option value="monthly">月付</option>
     </select>
     <select class="filter-select" id="list-owner" onchange="state.currentPage=1;renderList()">
       <option value="">所有業務員</option>
@@ -255,13 +280,13 @@ input,select,textarea{font-family:var(--font)}
     <thead><tr>
       <th onclick="toggleSort('company')" style="cursor:pointer;user-select:none">客戶／宮廟 <span id="sort-company">↕</span></th>
       <th onclick="toggleSort('contact')" style="cursor:pointer;user-select:none">聯絡人 <span id="sort-contact">↕</span></th>
-      <th onclick="toggleSort('phone')" style="cursor:pointer;user-select:none">電話 <span id="sort-phone">↕</span></th>
-      <th onclick="toggleSort('email')" style="cursor:pointer;user-select:none">Email <span id="sort-email">↕</span></th>
+      <th onclick="toggleSort('billing_type')" style="cursor:pointer;user-select:none">計費 <span id="sort-billing_type">↕</span></th>
       <th onclick="toggleSort('stage')" style="cursor:pointer;user-select:none">階段 <span id="sort-stage">↕</span></th>
-      <th onclick="toggleSort('amount')" style="cursor:pointer;user-select:none">金額 <span id="sort-amount">↕</span></th>
+      <th onclick="toggleSort('one_time_amount')" style="cursor:pointer;user-select:none">單次金額 <span id="sort-one_time_amount">↕</span></th>
+      <th onclick="toggleSort('monthly_fee')" style="cursor:pointer;user-select:none">月費 <span id="sort-monthly_fee">↕</span></th>
       <th onclick="toggleSort('owner')" style="cursor:pointer;user-select:none">業務員 <span id="sort-owner">↕</span></th>
       <th onclick="toggleSort('type')" style="cursor:pointer;user-select:none">型態 <span id="sort-type">↕</span></th>
-      <th onclick="toggleSort('created_at')" style="cursor:pointer;user-select:none">建立日期 <span id="sort-created_at">↕</span></th>
+      <th onclick="toggleSort('renewal_date')" style="cursor:pointer;user-select:none">續約日 <span id="sort-renewal_date">↕</span></th>
       <th>操作</th>
     </tr></thead>
     <tbody id="list-tbody"></tbody>
@@ -307,9 +332,40 @@ input,select,textarea{font-family:var(--font)}
           </select>
         </div>
         <div class="form-group half">
-          <label class="form-label">預估金額 (NT$)</label>
-          <input class="form-input" id="f-amount" type="number" min="0" placeholder="500000">
+          <label class="form-label">計費類型</label>
+          <select class="form-input" id="f-billing" onchange="updateBillingFields()">
+            <option value="one_time">單次客戶</option>
+            <option value="monthly">月付費客戶</option>
+          </select>
+        </div>
+      </div>
+      <div id="billing-one-time">
+        <div class="form-group">
+          <label class="form-label">單次金額 (NT$)</label>
+          <input class="form-input" id="f-one-time-amount" type="number" min="0" placeholder="220000">
           <div class="form-error" id="e-amount"></div>
+        </div>
+      </div>
+      <div id="billing-monthly" class="hidden">
+        <div class="form-row">
+          <div class="form-group half">
+            <label class="form-label">月費 (NT$ / 月)</label>
+            <input class="form-input" id="f-monthly-fee" type="number" min="0" placeholder="9800">
+          </div>
+          <div class="form-group half">
+            <label class="form-label">導入費 / 建置費 (NT$)</label>
+            <input class="form-input" id="f-setup-fee" type="number" min="0" placeholder="50000">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group half">
+            <label class="form-label">合約迄日</label>
+            <input class="form-input" id="f-contract-end" type="date">
+          </div>
+          <div class="form-group half">
+            <label class="form-label">續約提醒日</label>
+            <input class="form-input" id="f-renewal-date" type="date">
+          </div>
         </div>
       </div>
       <div class="form-group">
@@ -387,6 +443,7 @@ input,select,textarea{font-family:var(--font)}
 </div>
 <div class="toast-wrap" id="toast-wrap"></div>
 <script>
+
 const CFG = {
   get url()     { return localStorage.getItem('crm_url') || '' },
   get owners()  { return (localStorage.getItem('crm_owners') || '陳業務,林業務,王業務').split(',').map(s=>s.trim()).filter(Boolean) },
@@ -398,341 +455,82 @@ const STAGE_FG    = { '潛在客戶':'#92400e','資格確認':'#1e40af','報價�
 const OWNER_COLORS = ['#6366f1','#ec4899','#14b8a6','#f97316','#8b5cf6','#06b6d4'];
 const TYPE_OPTIONS = ['廟宇','金融','食品','實體通路','交通','支付','人壽','農產'];
 const DEMO = [
-  {id:'1',company:'台積電',contact:'王大明',phone:'02-1234-5678',email:'wang@tsmc.com',stage:'潛在客戶',amount:500000,probability:20,close_date:'2025-08-01',owner:'陳業務',type:'金融',notes:'',created_at:'2025-05-01'},
-  {id:'2',company:'鴻海精密',contact:'李小芳',phone:'02-8765-4321',email:'li@foxconn.com',stage:'資格確認',amount:1200000,probability:50,close_date:'2025-07-15',owner:'林業務',type:'交通',notes:'',created_at:'2025-05-03'},
-  {id:'3',company:'中華電信',contact:'張建國',phone:'02-2222-3333',email:'chang@cht.com',stage:'報價中',amount:800000,probability:75,close_date:'2025-06-30',owner:'陳業務',type:'支付',notes:'',created_at:'2025-05-05'},
-  {id:'4',company:'全聯福利',contact:'劉美玲',phone:'02-5555-6666',email:'liu@pxmart.com',stage:'已成交',amount:350000,probability:100,close_date:'2025-05-20',owner:'林業務',type:'實體通路',notes:'',created_at:'2025-04-20'},
-  {id:'5',company:'玉山銀行',contact:'吳宏達',phone:'02-7777-8888',email:'wu@esun.com',stage:'潛在客戶',amount:950000,probability:30,close_date:'2025-08-10',owner:'王業務',type:'金融',notes:'',created_at:'2025-05-02'},
-  {id:'6',company:'台灣大哥大',contact:'陳志豪',phone:'02-3333-4444',email:'chen@tmo.com',stage:'資格確認',amount:620000,probability:45,close_date:'2025-07-20',owner:'王業務',type:'人壽',notes:'',created_at:'2025-05-04'},
-  {id:'7',company:'遠東百貨',contact:'林雅婷',phone:'02-6666-7777',email:'lin@feds.com',stage:'報價中',amount:430000,probability:60,close_date:'2025-07-05',owner:'陳業務',type:'食品',notes:'',created_at:'2025-05-06'},
+  {id:'1',company:'關渡宮',contact:'陳董',phone:'',email:'',stage:'報價中',amount:220000,one_time_amount:220000,monthly_fee:0,setup_fee:0,probability:71,close_date:'2026-05-20',owner:'林業務',type:'廟宇',billing_type:'one_time',notes:'',created_at:'2026-05-01'},
+  {id:'2',company:'士林慈誠宮',contact:'葉家伶',phone:'',email:'',stage:'報價中',amount:1999,one_time_amount:0,monthly_fee:1999,setup_fee:0,probability:84,close_date:'2026-05-17',owner:'陳業務',type:'廟宇',billing_type:'monthly',renewal_date:'2026-12-31',notes:'',created_at:'2026-05-03'},
+  {id:'3',company:'玉山銀行',contact:'吳宏達',phone:'',email:'',stage:'潛在客戶',amount:950000,one_time_amount:950000,monthly_fee:0,setup_fee:0,probability:30,close_date:'2026-08-10',owner:'王業務',type:'金融',billing_type:'one_time',notes:'',created_at:'2026-05-02'},
+  {id:'4',company:'全聯福利中心',contact:'劉美玲',phone:'',email:'',stage:'已成交',amount:350000,one_time_amount:350000,monthly_fee:0,setup_fee:0,probability:100,close_date:'2026-05-20',owner:'林業務',type:'實體通路',billing_type:'one_time',notes:'',created_at:'2026-04-20'},
+  {id:'5',company:'北港朝天宮',contact:'李組長',phone:'',email:'',stage:'報價中',amount:270000,one_time_amount:270000,monthly_fee:0,setup_fee:0,probability:60,close_date:'2026-07-05',owner:'陳業務',type:'廟宇',billing_type:'one_time',notes:'',created_at:'2026-05-06'},
+  {id:'6',company:'中華電信',contact:'張建國',phone:'',email:'',stage:'資格確認',amount:0,one_time_amount:0,monthly_fee:60000,setup_fee:120000,probability:45,close_date:'2026-07-20',owner:'王業務',type:'支付',billing_type:'monthly',renewal_date:'2027-01-31',notes:'',created_at:'2026-05-04'},
 ];
-// 排序狀態：col=目前排序欄位, dir=方向(asc/desc)
 let sortState = { col: null, dir: 'asc' };
-// 切換排序欄位或方向
-function toggleSort(col) {
-  if (sortState.col === col) {
-    // 同欄再按 → 切換方向
-    sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
-  } else {
-    // 不同欄 → 重設為升冪
-    sortState.col = col;
-    sortState.dir = 'asc';
-  }
-  state.currentPage = 1;
-  renderList();
+let state = { deals: [...DEMO], activities: [], currentPage: 1, editingId: null, pipelineMode: 'all', expandedCardId: null };
+function toggleSort(col){ sortState.col===col ? sortState.dir=(sortState.dir==='asc'?'desc':'asc') : (sortState.col=col, sortState.dir='asc'); state.currentPage=1; renderList(); }
+function setPipelineMode(mode){ state.pipelineMode=mode; document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active')); const el=document.getElementById('mode-'+mode); if(el) el.classList.add('active'); renderKanban(); }
+function normalizeDealRow(r){
+  const billing = r[14] || (Number(r[16]||0)>0 ? 'monthly' : 'one_time');
+  const oneTime = Number(r[15] || (billing==='one_time' ? r[6] : 0)) || 0;
+  const monthly = Number(r[16] || 0) || 0;
+  return {id:String(r[0]),company:r[1],contact:r[2],phone:r[3],email:r[4],stage:r[5]||'潛在客戶',amount:Number(r[6])||oneTime||monthly,probability:Number(r[7])||0,close_date:r[8],owner:r[9],type:r[10]||'廟宇',notes:r[11],created_at:r[12],updated_at:r[13],billing_type:billing,one_time_amount:oneTime,monthly_fee:monthly,setup_fee:Number(r[17])||0,contract_end_date:r[18]||'',renewal_date:r[19]||''};
 }
-let state = { deals: [...DEMO], activities: [], currentPage: 1, editingId: null };
-async function callAPI(params) {
-  if (!CFG.url) return null;
-  try {
-    const u = new URL(CFG.url);
-    Object.entries(params).forEach(([k,v]) => u.searchParams.set(k, String(v)));
-    const res = await fetch(u.toString());
-    const json = await res.json();
-    setConn(json.ok);
-    return json.ok ? json : null;
-  } catch { setConn(false); return null; }
-}
-function setConn(ok) {
-  const dot = document.getElementById('conn-dot');
-  const txt = document.getElementById('conn-text');
-  dot.className = 'conn-dot ' + (ok ? 'on' : 'err');
-  txt.textContent = ok ? '已連線' : '連線失敗';
-}
-async function syncData() {
-  const res = await callAPI({ action:'getDeals' });
-  if (res) { state.deals = res.data.map(r=>({id:String(r[0]),company:r[1],contact:r[2],phone:r[3],email:r[4],stage:r[5],amount:Number(r[6])||0,probability:Number(r[7])||0,close_date:r[8],owner:r[9],type:r[10],notes:r[11],created_at:r[12]})); }
-  renderAll();
-  if (res) toast('✓ 資料已同步', 'success');
-}
-function renderAll() {
-  renderStats(); renderFunnel(); renderActivities(); renderGoals(); renderExpiry(); renderKanban(); renderList(); updateOwnerFilters();
-}
-function renderStats() {
-  const d = state.deals;
-  const thisMonth = new Date().toISOString().slice(0,7);
-  const wonThisMonth = d.filter(x => x.stage==='已成交' && (x.close_date||'').startsWith(thisMonth));
-  const cards = [
-    {cls:'c-lead',   label:'潛在客戶', val: d.filter(x=>x.stage==='潛在客戶').length,   sub:'筆商機'},
-    {cls:'c-qualify',label:'資格確認', val: d.filter(x=>x.stage==='資格確認').length,   sub:'筆商機'},
-    {cls:'c-proposal',label:'報價中',  val: 'NT$'+fmt(d.filter(x=>x.stage==='報價中').reduce((s,x)=>s+x.amount,0)), sub:'總金額'},
-    {cls:'c-won',    label:'本月成交', val: wonThisMonth.length,                          sub:'筆成交'},
-    {cls:'c-won',    label:'成交總額', val: 'NT$'+fmt(d.filter(x=>x.stage==='已成交').reduce((s,x)=>s+x.amount,0)), sub:'累計'},
+async function callAPI(params){ if(!CFG.url) return null; try{ const u=new URL(CFG.url); Object.entries(params).forEach(([k,v])=>u.searchParams.set(k,String(v??''))); const res=await fetch(u.toString()); const json=await res.json(); setConn(json.ok); return json.ok?json:null; }catch{ setConn(false); return null; } }
+function setConn(ok){ const dot=document.getElementById('conn-dot'),txt=document.getElementById('conn-text'); dot.className='conn-dot '+(ok?'on':'err'); txt.textContent=ok?'已連線':'連線失敗'; }
+async function syncData(){ const res=await callAPI({action:'getDeals'}); if(res){ state.deals=res.data.map(normalizeDealRow); } renderAll(); if(res) toast('✓ 資料已同步','success'); }
+function renderAll(){ renderStats(); renderFunnel(); renderActivities(); renderGoals(); renderExpiry(); renderKanban(); renderList(); updateOwnerFilters(); }
+function isMonthly(d){ return d.billing_type==='monthly'; }
+function getDealValue(d){ return isMonthly(d) ? (Number(d.monthly_fee)||0) : (Number(d.one_time_amount)||Number(d.amount)||0); }
+function getOneTime(d){ return Number(d.one_time_amount)||(!isMonthly(d)?Number(d.amount)||0:0); }
+function getMonthly(d){ return Number(d.monthly_fee)||0; }
+function displayAmount(d){ return isMonthly(d) ? 'NT$'+fmt(getMonthly(d))+'/月' : 'NT$'+fmt(getOneTime(d)); }
+function billingLabel(d){ return isMonthly(d) ? '月付' : '單次'; }
+function renderStats(){
+  const d=state.deals; const ym=new Date().toISOString().slice(0,7);
+  const oneWon=d.filter(x=>!isMonthly(x)&&x.stage==='已成交'&&(x.close_date||'').startsWith(ym));
+  const monthlyActive=d.filter(x=>isMonthly(x)&&['已成交','報價中','資格確認'].includes(x.stage));
+  const mrr=monthlyActive.filter(x=>x.stage==='已成交').reduce((s,x)=>s+getMonthly(x),0);
+  const renewalThisMonth=d.filter(x=>isMonthly(x)&&(x.renewal_date||'').startsWith(ym)).length;
+  const cards=[
+    {cls:'c-won',label:'本月單次成交',val:'NT$'+fmt(oneWon.reduce((s,x)=>s+getOneTime(x),0)),sub:oneWon.length+' 筆'},
+    {cls:'c-proposal',label:'報價中金額',val:'NT$'+fmt(d.filter(x=>x.stage==='報價中').reduce((s,x)=>s+getDealValue(x),0)),sub:'單次＋月費'},
+    {cls:'c-qualify',label:'MRR 月經常收入',val:'NT$'+fmt(mrr),sub:'已成交月付'},
+    {cls:'c-won',label:'ARR 年經常收入',val:'NT$'+fmt(mrr*12),sub:'MRR × 12'},
+    {cls:'c-lead',label:'月付客戶',val:d.filter(isMonthly).length,sub:'總筆數'},
+    {cls:'c-qualify',label:'本月續約',val:renewalThisMonth,sub:'待處理'},
+    {cls:'c-proposal',label:'單次商機',val:d.filter(x=>!isMonthly(x)).length,sub:'總筆數'},
+    {cls:'c-won',label:'客戶總數',val:d.length,sub:'含單次／月付'},
   ];
-  document.getElementById('stats-row').innerHTML = cards.map(c=>`<div class="stat-card ${c.cls}"><div class="stat-label">${c.label}</div><div class="stat-value">${c.val}</div><div class="stat-sub">${c.sub}</div></div>`).join('');
+  document.getElementById('stats-row').innerHTML=cards.map(c=>`<div class="stat-card ${c.cls}"><div class="stat-label">${c.label}</div><div class="stat-value">${c.val}</div><div class="stat-sub">${c.sub}</div></div>`).join('');
 }
-function renderFunnel() {
-  const stages = ['潛在客戶','資格確認','報價中','已成交'];
-  const counts = stages.map(s => state.deals.filter(d=>d.stage===s).length);
-  const total = counts.reduce((a,b)=>a+b,0) || 1;
-  document.getElementById('funnel-bar').innerHTML = stages.map((s,i)=>`<div class="funnel-seg" style="flex:${counts[i]/total};background:${STAGE_COLOR[s]}" title="${s}: ${counts[i]}筆"></div>`).join('');
-  document.getElementById('funnel-legend').innerHTML = stages.map((s,i)=>`<div class="leg-item"><div class="leg-dot" style="background:${STAGE_COLOR[s]}"></div>${s} (${counts[i]})</div>`).join('');
+function renderFunnel(){ const stages=['潛在客戶','資格確認','報價中','已成交']; const counts=stages.map(s=>state.deals.filter(d=>d.stage===s).length); const total=counts.reduce((a,b)=>a+b,0)||1; document.getElementById('funnel-bar').innerHTML=stages.map((s,i)=>`<div class="funnel-seg" style="flex:${counts[i]/total};background:${STAGE_COLOR[s]}" title="${s}: ${counts[i]}筆"></div>`).join(''); document.getElementById('funnel-legend').innerHTML=stages.map((s,i)=>`<div class="leg-item"><div class="leg-dot" style="background:${STAGE_COLOR[s]}"></div>${s} (${counts[i]})</div>`).join(''); }
+function renderActivities(){ const list=document.getElementById('act-list'); if(!state.activities.length){list.innerHTML='<div style="color:var(--gray-400);font-size:13px;text-align:center;padding:20px">尚無活動記錄</div>';return;} list.innerHTML=state.activities.slice(0,10).map((a,i)=>`<div class="act-item"><div class="act-avatar" style="background:${OWNER_COLORS[i%OWNER_COLORS.length]}">${(a.action||'').charAt(0)}</div><div class="act-info"><div class="act-name">${esc(a.action)}</div><div class="act-time">${new Date(a.time).toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}</div></div></div>`).join(''); }
+function renderGoals(){ const g=CFG.goals,d=state.deals,ym=new Date().toISOString().slice(0,7); const won=d.filter(x=>x.stage==='已成交'&&(x.close_date||'').startsWith(ym)); const items=[{label:'成交筆數',cur:won.length,target:g.deals,color:'#10b981',unit:'筆'},{label:'單次成交金額',cur:won.reduce((s,x)=>s+getOneTime(x),0),target:g.amount,color:'#3b82f6',unit:'NT$'},{label:'新增客戶',cur:d.filter(x=>(x.created_at||'').startsWith(ym)).length,target:g.clients,color:'#8b5cf6',unit:'筆'}]; document.getElementById('goals-body').innerHTML=items.map(item=>{const pct=Math.min(100,Math.round((item.cur/(item.target||1))*100))||0; const val=item.unit==='NT$'?'NT$'+fmt(item.cur)+' / NT$'+fmt(item.target):item.cur+' / '+item.target+item.unit; return `<div class="goal-item"><div class="goal-header"><span class="goal-label">${item.label}</span><span class="goal-val">${val}</span></div><div class="progress-track"><div class="progress-fill" style="width:${pct}%;background:${item.color}"></div></div></div>`;}).join(''); }
+function renderExpiry(){ const today=new Date();today.setHours(0,0,0,0); const upcoming=state.deals.filter(d=>d.stage!=='已成交'&&(d.close_date||d.renewal_date)).map(d=>{const date=d.renewal_date||d.close_date;return {...d,diff:Math.ceil((new Date(date)-today)/(1000*60*60*24)),_date:date}}).sort((a,b)=>a.diff-b.diff).slice(0,5); document.getElementById('expiry-body').innerHTML=upcoming.length?upcoming.map(d=>{const cls=d.diff<0?'urgent':d.diff<=7?'soon':'ok'; const label=d.diff<0?`逾期${-d.diff}天`:d.diff===0?'今天到期':`${d.diff}天後`; return `<div class="expiry-item"><span class="expiry-company">${esc(d.company)}</span><span class="expiry-amount">${displayAmount(d)}</span><span class="expiry-days ${cls}">${isMonthly(d)?'續約 ':''}${label}</span></div>`;}).join(''):'<div style="color:var(--gray-400);font-size:13px;text-align:center;padding:16px">無即將到期商機</div>'; }
+function renderKanban(){
+  const q=(document.getElementById('kanban-search').value||'').toLowerCase(); const ow=document.getElementById('kanban-owner').value; const mode=state.pipelineMode;
+  let filtered=state.deals.filter(d=>(!q||[d.company,d.contact,d.type].some(v=>(v||'').toLowerCase().includes(q)))&&(!ow||d.owner===ow)&&(mode==='all'||(mode==='monthly'?isMonthly(d):!isMonthly(d))));
+  const total=filtered.reduce((s,d)=>s+getDealValue(d),0); document.getElementById('kanban-total').textContent=`共 ${filtered.length} 筆・NT$${fmt(total)}${mode==='monthly'?' / 月':''}`;
+  const stages=['潛在客戶','資格確認','報價中','已成交'];
+  document.getElementById('kanban-board').innerHTML=stages.map(stage=>{ const cards=filtered.filter(d=>d.stage===stage); const stageTotal=cards.reduce((s,d)=>s+getDealValue(d),0); const color=STAGE_COLOR[stage],countBg=STAGE_BG[stage],countFg=STAGE_FG[stage]; return `<div class="kanban-col" id="col-${stage}" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="dropCard(event,'${stage}')"><div class="col-header"><div class="col-bar" style="background:${color}"></div><span class="col-title">${stage}</span><span class="col-count" style="background:${countBg};color:${countFg}">${cards.length}</span></div><div class="col-amount">NT$${fmt(stageTotal)}${mode==='monthly'?' / 月':''}</div><div class="col-cards" id="cards-${stage}">${cards.map(d=>dealCardHTML(d)).join('')}${cards.length===0?'<div class="col-empty">拖曳卡片至此</div>':''}<button class="add-card-btn" onclick="openDealModal(null,'${stage}')">＋ 新增</button></div></div>`; }).join('');
 }
-function renderActivities() {
-  const list = document.getElementById('act-list');
-  if (!state.activities.length) { list.innerHTML='<div style="color:var(--gray-400);font-size:13px;text-align:center;padding:20px">尚無活動記錄</div>'; return; }
-  list.innerHTML = state.activities.slice(0,10).map((a,i)=>{
-    const color = OWNER_COLORS[i % OWNER_COLORS.length];
-    const time = new Date(a.time).toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
-    return `<div class="act-item"><div class="act-avatar" style="background:${color}">${(a.action||'').charAt(0)}</div><div class="act-info"><div class="act-name">${esc(a.action)}</div><div class="act-time">${time}</div></div></div>`;
-  }).join('');
+function dealCardHTML(d){ const ownerIdx=CFG.owners.indexOf(d.owner); const ownerColor=OWNER_COLORS[ownerIdx>=0?ownerIdx:0]; const ownerInitial=(d.owner||'?').charAt(0); const expanded=state.expandedCardId===d.id; const billingClass=isMonthly(d)?'billing-monthly':'billing-one'; if(!expanded){ return `<div class="deal-card compact" draggable="true" id="card-${d.id}" onclick="state.expandedCardId='${d.id}';renderKanban()" ondragstart="dragStart(event,'${d.id}')" ondragend="dragEnd(event)"><div class="deal-company">${esc(d.company)}</div><div class="deal-meta"><span class="deal-amount">${displayAmount(d)}</span></div></div>`; }
+  return `<div class="deal-card expanded" draggable="true" id="card-${d.id}" onclick="event.stopPropagation()" ondragstart="dragStart(event,'${d.id}')" ondragend="dragEnd(event)"><div class="card-actions"><button class="card-btn" onclick="event.stopPropagation();openDealModal('${d.id}')" title="編輯">✏️</button><button class="card-btn" onclick="event.stopPropagation();deleteDeal('${d.id}')" title="刪除">🗑️</button></div><div class="deal-company">${esc(d.company)}</div><div class="deal-contact">${esc(d.contact||'未填聯絡人')}</div><div class="deal-meta"><span class="deal-amount">${displayAmount(d)}</span><div class="deal-prob-wrap"><div class="prob-bar"><div class="prob-fill" style="width:${d.probability}%"></div></div>${d.probability}%</div></div><div class="deal-footer"><span class="billing-pill ${billingClass}">${billingLabel(d)}</span><span class="deal-tag">${esc(d.type||'')}</span><span class="deal-date">${friendlyDate(isMonthly(d)?(d.renewal_date||d.close_date):d.close_date)}</span><div class="owner-avatar" style="background:${ownerColor}" title="${esc(d.owner||'')}">${ownerInitial}</div></div></div>`;
 }
-function renderGoals() {
-  const g = CFG.goals; const d = state.deals;
-  const thisMonth = new Date().toISOString().slice(0,7);
-  const wonDeals = d.filter(x=>x.stage==='已成交'&&(x.close_date||'').startsWith(thisMonth));
-  const items = [
-    {label:'成交筆數',cur:wonDeals.length,target:g.deals,color:'#10b981',unit:'筆'},
-    {label:'成交金額',cur:wonDeals.reduce((s,x)=>s+x.amount,0),target:g.amount,color:'#3b82f6',unit:'NT$'},
-    {label:'新增客戶',cur:d.filter(x=>(x.created_at||'').startsWith(thisMonth)).length,target:g.clients,color:'#8b5cf6',unit:'筆'},
-  ];
-  document.getElementById('goals-body').innerHTML = items.map(item=>{
-    const pct = Math.min(100, Math.round((item.cur/item.target)*100)) || 0;
-    const val = item.unit==='NT$' ? 'NT$'+fmt(item.cur)+' / NT$'+fmt(item.target) : item.cur+' / '+item.target+item.unit;
-    return `<div class="goal-item"><div class="goal-header"><span class="goal-label">${item.label}</span><span class="goal-val">${val}</span></div><div class="progress-track"><div class="progress-fill" style="width:${pct}%;background:${item.color}"></div></div></div>`;
-  }).join('');
-}
-function renderExpiry() {
-  const today = new Date(); today.setHours(0,0,0,0);
-  const upcoming = state.deals.filter(d=>d.stage!=='已成交'&&d.close_date).map(d=>({...d,diff:Math.ceil((new Date(d.close_date)-today)/(1000*60*60*24))})).sort((a,b)=>a.diff-b.diff).slice(0,5);
-  document.getElementById('expiry-body').innerHTML = upcoming.length ? upcoming.map(d=>{
-    const cls = d.diff<0?'urgent':d.diff<=7?'soon':'ok';
-    const label = d.diff<0?`逾期${-d.diff}天`:d.diff===0?'今天到期':`${d.diff}天後`;
-    return `<div class="expiry-item"><span class="expiry-company">${esc(d.company)}</span><span class="expiry-amount">NT$${fmt(d.amount)}</span><span class="expiry-days ${cls}">${label}</span></div>`;
-  }).join('') : '<div style="color:var(--gray-400);font-size:13px;text-align:center;padding:16px">無即將到期商機</div>';
-}
-function renderKanban() {
-  const q = (document.getElementById('kanban-search').value||'').toLowerCase();
-  const ow = document.getElementById('kanban-owner').value;
-  const filtered = state.deals.filter(d=>(!q||d.company.toLowerCase().includes(q)||d.contact.toLowerCase().includes(q))&&(!ow||d.owner===ow));
-  const total = filtered.reduce((s,d)=>s+d.amount,0);
-  document.getElementById('kanban-total').textContent = `共 ${filtered.length} 筆・NT$${fmt(total)}`;
-  const stages = ['潛在客戶','資格確認','報價中','已成交'];
-  document.getElementById('kanban-board').innerHTML = stages.map(stage=>{
-    const cards = filtered.filter(d=>d.stage===stage);
-    const stageTotal = cards.reduce((s,d)=>s+d.amount,0);
-    const color = STAGE_COLOR[stage]; const countBg = STAGE_BG[stage]; const countFg = STAGE_FG[stage];
-    return `<div class="kanban-col" id="col-${stage}" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="dropCard(event,'${stage}')">
-      <div class="col-header"><div class="col-bar" style="background:${color}"></div><span class="col-title">${stage}</span><span class="col-count" style="background:${countBg};color:${countFg}">${cards.length}</span></div>
-      <div class="col-amount">NT$${fmt(stageTotal)}</div>
-      <div class="col-cards" id="cards-${stage}">${cards.map(d=>dealCardHTML(d)).join('')}${cards.length===0?'<div class="col-empty">拖曳卡片至此</div>':''}</div>
-      <div style="padding:0 10px 10px"><button class="add-card-btn" onclick="openDealModal(null,'${stage}')">＋ 新增</button></div>
-    </div>`;
-  }).join('');
-}
-function dealCardHTML(d) {
-  const ownerIdx = CFG.owners.indexOf(d.owner);
-  const ownerColor = OWNER_COLORS[ownerIdx>=0?ownerIdx:0];
-  const ownerInitial = (d.owner||'?').charAt(0);
-  return `<div class="deal-card" draggable="true" id="card-${d.id}" ondragstart="dragStart(event,'${d.id}')" ondragend="dragEnd(event)">
-    <div class="card-actions"><button class="card-btn" onclick="openDealModal('${d.id}')" title="編輯">✏️</button><button class="card-btn" onclick="deleteDeal('${d.id}')" title="刪除">🗑️</button></div>
-    <div class="deal-company">${esc(d.company)}</div>
-    <div class="deal-contact">${esc(d.contact)}</div>
-    <div class="deal-meta"><span class="deal-amount">NT$${fmt(d.amount)}</span><div class="deal-prob-wrap"><div class="prob-bar"><div class="prob-fill" style="width:${d.probability}%"></div></div>${d.probability}%</div></div>
-    <div class="deal-footer"><span class="deal-tag">${esc(d.type||'')}</span><span class="deal-date">${d.close_date||''}</span><div class="owner-avatar" style="background:${ownerColor}" title="${esc(d.owner||'')}">${ownerInitial}</div></div>
-  </div>`;
-}
-let draggingId = null;
-function dragStart(ev, id) { draggingId = id; ev.dataTransfer.effectAllowed = 'move'; setTimeout(()=>{ const el=document.getElementById('card-'+id); if(el) el.classList.add('dragging'); },0); }
-function dragEnd(ev) { document.querySelectorAll('.deal-card').forEach(c=>c.classList.remove('dragging')); document.querySelectorAll('.kanban-col').forEach(c=>c.classList.remove('drag-over')); }
-async function dropCard(ev, newStage) {
-  ev.preventDefault(); ev.currentTarget.classList.remove('drag-over');
-  if (!draggingId) return;
-  const deal = state.deals.find(d=>d.id===draggingId);
-  if (!deal || deal.stage===newStage) return;
-  deal.stage = newStage; renderKanban();
-  toast(`✓ ${deal.company} → ${newStage}`, 'success');
-  await callAPI({ action:'updateDeal', id:deal.id, stage:newStage, company:deal.company });
-  draggingId = null;
-}
-function renderList() {
-  const q = (document.getElementById('list-search').value||'').toLowerCase();
-  const st = document.getElementById('list-stage').value;
-  const ow = document.getElementById('list-owner').value;
-  const ty = document.getElementById('list-type')?.value || '';
-  // 先篩選
-  let filtered = state.deals.filter(d=>(!q||[d.company,d.contact,d.email,d.phone,d.type].some(v=>(v||'').toLowerCase().includes(q)))&&(!st||d.stage===st)&&(!ow||d.owner===ow)&&(!ty||d.type===ty));
-  // 排序邏輯
-  if (sortState.col) {
-    filtered = [...filtered].sort((a, b) => {
-      let va = a[sortState.col] ?? '';
-      let vb = b[sortState.col] ?? '';
-      // 金額、機率用數值比較；日期轉時間；其餘用繁中友善字串比較
-      if (['amount','probability'].includes(sortState.col)) {
-        va = Number(va) || 0; vb = Number(vb) || 0;
-      } else if (['created_at','close_date'].includes(sortState.col)) {
-        va = va ? new Date(va).getTime() : 0; vb = vb ? new Date(vb).getTime() : 0;
-      } else {
-        va = String(va || ''); vb = String(vb || '');
-        const cmpText = va.localeCompare(vb, 'zh-Hant');
-        return sortState.dir === 'asc' ? cmpText : -cmpText;
-      }
-      const cmp = va < vb ? -1 : va > vb ? 1 : 0;
-      return sortState.dir === 'asc' ? cmp : -cmp;
-    });
-  }
-  // 更新排序圖示：↕初始 ↑升冪 ↓降冪
-  ['company','contact','phone','email','stage','amount','owner','type','created_at'].forEach(k => {
-    const el = document.getElementById('sort-' + k);
-    if (!el) return;
-    el.textContent = sortState.col === k ? (sortState.dir === 'asc' ? '↑' : '↓') : '↕';
-  });
-  // 每頁 10 筆分頁
-  const perPage=10, total=filtered.length, pages=Math.ceil(total/perPage)||1;
-  if (state.currentPage>pages) state.currentPage=1;
-  const slice = filtered.slice((state.currentPage-1)*perPage, state.currentPage*perPage);
-  document.getElementById('list-tbody').innerHTML = slice.map(d=>{
-    const stageStyle = `background:${STAGE_BG[d.stage]};color:${STAGE_FG[d.stage]}`;
-    return `<tr><td><strong>${esc(d.company)}</strong></td><td>${esc(d.contact)}</td><td>${esc(d.phone||'')}</td><td>${esc(d.email||'')}</td><td><span class="stage-pill" style="${stageStyle}">${d.stage}</span></td><td style="font-family:var(--mono)">NT$${fmt(d.amount)}</td><td>${esc(d.owner||'')}</td><td>${esc(d.type||'')}</td><td>${(d.created_at||'').slice(0,10)}</td><td style="display:flex;gap:6px"><button class="card-btn" onclick="openDealModal('${d.id}')">✏️</button><button class="card-btn" onclick="deleteDeal('${d.id}')">🗑️</button></td></tr>`;
-  }).join('') || `<tr><td colspan="10" style="text-align:center;padding:32px;color:var(--gray-400)">無符合資料</td></tr>`;
-  const pg = document.getElementById('pagination');
-  if (pages<=1) { pg.innerHTML=''; return; }
-  pg.innerHTML = Array.from({length:pages},(_,i)=>i+1).map(p=>`<button class="page-btn ${p===state.currentPage?'active':''}" onclick="state.currentPage=${p};renderList()">${p}</button>`).join('');
-}
-function updateOwnerFilters() {
-  const owners = CFG.owners;
-  ['kanban-owner','list-owner'].forEach(id=>{ const el=document.getElementById(id); const cur=el.value; el.innerHTML='<option value="">所有業務員</option>'+owners.map(o=>`<option ${o===cur?'selected':''}>${esc(o)}</option>`).join(''); });
-  const fo = document.getElementById('f-owner');
-  if (fo) fo.innerHTML = owners.map(o=>`<option>${esc(o)}</option>`).join('');
-}
-function openDealModal(id, defaultStage) {
-  state.editingId = id;
-  const d = id ? state.deals.find(x=>x.id===id) : null;
-  document.getElementById('modal-title').textContent = id ? '編輯商機' : '新增商機';
-  document.getElementById('f-company').value = d?.company||'';
-  document.getElementById('f-contact').value = d?.contact||'';
-  document.getElementById('f-phone').value = d?.phone||'';
-  document.getElementById('f-email').value = d?.email||'';
-  document.getElementById('f-stage').value = d?.stage||defaultStage||'潛在客戶';
-  document.getElementById('f-amount').value = d?.amount||'';
-  document.getElementById('f-prob').value = d?.probability||50;
-  document.getElementById('prob-val').textContent = (d?.probability||50)+'%';
-  document.getElementById('f-date').value = d?.close_date||'';
-  document.getElementById('f-type').value = TYPE_OPTIONS.includes(d?.type) ? d.type : '廟宇';
-  document.getElementById('f-notes').value = d?.notes||'';
-  updateOwnerFilters();
-  if (d?.owner) document.getElementById('f-owner').value = d.owner;
-  ['company','contact','email','amount'].forEach(k=>{ document.getElementById('e-'+k).textContent=''; document.getElementById('f-'+k).classList.remove('error'); });
-  document.getElementById('deal-modal').classList.add('open');
-}
-async function saveDeal() {
-  let valid = true;
-  ['company','contact'].forEach(k=>{ const v=document.getElementById('f-'+k).value.trim(); if(!v){document.getElementById('e-'+k).textContent='必填欄位';document.getElementById('f-'+k).classList.add('error');valid=false;}else{document.getElementById('e-'+k).textContent='';document.getElementById('f-'+k).classList.remove('error');} });
-  const email = document.getElementById('f-email').value.trim();
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { document.getElementById('e-email').textContent='Email 格式不正確'; document.getElementById('f-email').classList.add('error'); valid=false; }
-  const amount = document.getElementById('f-amount').value;
-  if (amount && (isNaN(amount)||Number(amount)<0)) { document.getElementById('e-amount').textContent='請輸入正確金額'; document.getElementById('f-amount').classList.add('error'); valid=false; }
-  if (!valid) return;
-  const params = { action:state.editingId?'updateDeal':'addDeal', id:state.editingId||'', company:document.getElementById('f-company').value.trim(), contact:document.getElementById('f-contact').value.trim(), phone:document.getElementById('f-phone').value.trim(), email:document.getElementById('f-email').value.trim(), stage:document.getElementById('f-stage').value, amount:Number(document.getElementById('f-amount').value)||0, probability:Number(document.getElementById('f-prob').value)||0, close_date:document.getElementById('f-date').value, owner:document.getElementById('f-owner').value, type:document.getElementById('f-type').value, industry:document.getElementById('f-type').value, notes:document.getElementById('f-notes').value.trim() };
-  const btn = document.getElementById('btn-save-deal'); btn.disabled=true; btn.textContent='⏳ 儲存中...';
-  if (state.editingId) { const old=state.deals.find(d=>d.id===state.editingId); if(old){params.oldStage=old.stage;Object.assign(old,params);} } else { state.deals.push({...params,id:Date.now().toString(),created_at:new Date().toISOString()}); }
-  closeModal('deal-modal'); renderAll();
-  toast(`✓ ${params.company} 已${state.editingId?'更新':'新增'}`, 'success');
-  await callAPI(params); btn.disabled=false; btn.textContent='儲存';
-}
-async function deleteDeal(id) {
-  const deal = state.deals.find(d=>d.id===id); if(!deal) return;
-  if (!confirm(`確定要刪除「${deal.company}」嗎？`)) return;
-  state.deals = state.deals.filter(d=>d.id!==id); renderAll();
-  toast(`🗑️ ${deal.company} 已刪除`, 'success');
-  await callAPI({ action:'deleteDeal', id });
-}
-// Excel 匯入：使用 SheetJS 解析 .xlsx/.xls/.csv
-// 欄位對應：A=客戶／宮廟名稱 B=聯絡人 C=電話 D=Email E=階段 F=金額 G=成交機率 H=預計成交日 I=業務員 J=型態 K=備註
-function importExcel(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      // 用 SheetJS 讀取二進位資料
-      const wb = XLSX.read(e.target.result, { type: 'binary' });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      // 轉成二維陣列，header:1 表示不自動用第一列當 key
-      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
-      if (!rows.length) { toast('❌ 檔案無資料', 'error'); input.value=''; return; }
-
-      // 判斷第一列是否為標題列：支援中文／英文表頭，不會誤跳過第一筆客戶
-      let startRow = 0;
-      const headerText = rows[0].map(v => String(v||'').trim().toLowerCase()).join('|');
-      if (/公司|公司名稱|company|聯絡人|contact|型態|type/.test(headerText)) {
-        startRow = 1; // 第一列是標題，從第二列開始
-      }
-
-      const validStages = ['潛在客戶', '資格確認', '報價中', '已成交'];
-      const validTypes = TYPE_OPTIONS;
-      let imported = 0;
-      let skipped = 0;
-
-      for (let i = startRow; i < rows.length; i++) {
-        const row = rows[i];
-        const company = String(row[0]||'').trim();
-        const contact = String(row[1]||'').trim();
-        // 客戶／宮廟名稱和聯絡人都必填，否則跳過
-        if (!company || !contact) { skipped++; continue; }
-
-        const stage = validStages.includes(String(row[4]||'').trim()) ? String(row[4]).trim() : '潛在客戶';
-        const type = validTypes.includes(String(row[9]||'').trim()) ? String(row[9]).trim() : '廟宇';
-        // 生成唯一 id：時間戳 + 索引，避免重複
-        const newId = Date.now().toString() + '_' + i;
-        const importedDeal = {
-          id: newId,
-          company,
-          contact,
-          phone: String(row[2]||'').trim(),
-          email: String(row[3]||'').trim(),
-          stage,
-          amount: Number(row[5]) || 0,
-          probability: Number(row[6]) || 0,
-          close_date: String(row[7]||'').trim(),
-          owner: String(row[8]||'').trim(),
-          type,
-          notes: String(row[10]||'').trim(),
-          created_at: new Date().toISOString()
-        };
-        state.deals.push(importedDeal);
-        // 若已連線 Google Sheets，順手寫入後端，避免下次同步消失
-        if (CFG.url) callAPI({ action:'addDeal', ...importedDeal });
-        imported++;
-      }
-
-      if (imported > 0) {
-        renderAll();
-        toast(`✓ 成功匯入 ${imported} 筆${skipped?'（跳過 '+skipped+' 筆空白列）':''}`, 'success');
-      } else {
-        toast('❌ 無法匯入：欄位格式不符，請確認 A=客戶／宮廟名稱 B=聯絡人', 'error');
-      }
-    } catch(err) {
-      toast('❌ 匯入失敗：' + err.message, 'error');
-    }
-    // 清空 input 讓同一檔案可重複匯入
-    input.value = '';
-  };
-  reader.readAsBinaryString(file);
-}
-function openSettings() {
-  document.getElementById('s-url').value = CFG.url;
-  document.getElementById('s-owners').value = CFG.owners.join('\n');
-  const g = CFG.goals;
-  document.getElementById('s-goal-deals').value = g.deals;
-  document.getElementById('s-goal-amount').value = g.amount;
-  document.getElementById('s-goal-clients').value = g.clients;
-  document.getElementById('settings-modal').classList.add('open');
-}
-function saveSettings() {
-  const url = document.getElementById('s-url').value.trim();
-  const owners = document.getElementById('s-owners').value.split('\n').map(s=>s.trim()).filter(Boolean);
-  const goals = { deals:Number(document.getElementById('s-goal-deals').value)||10, amount:Number(document.getElementById('s-goal-amount').value)||2000000, clients:Number(document.getElementById('s-goal-clients').value)||15 };
-  localStorage.setItem('crm_url', url); localStorage.setItem('crm_owners', owners.join(',')); localStorage.setItem('crm_goals', JSON.stringify(goals));
-  closeModal('settings-modal'); toast('✓ 設定已儲存', 'success');
-  if (url) { setConn(true); syncData(); }
-  updateOwnerFilters(); renderAll();
-}
-function switchPage(name, btn) { document.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active')); document.getElementById('page-'+name).classList.add('active'); if(btn) btn.classList.add('active'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-function toast(msg, type='success') { const el=document.createElement('div'); el.className='toast '+type; el.textContent=msg; document.getElementById('toast-wrap').appendChild(el); setTimeout(()=>{ el.style.animation='toastOut .3s ease forwards'; setTimeout(()=>el.remove(),300); },3000); }
-function fmt(n) { if(n>=10000) return Math.round(n/10000)+'萬'; return Number(n).toLocaleString(); }
-function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+let draggingId=null; function dragStart(ev,id){draggingId=id;ev.dataTransfer.effectAllowed='move';setTimeout(()=>{const el=document.getElementById('card-'+id);if(el)el.classList.add('dragging');},0)} function dragEnd(ev){document.querySelectorAll('.deal-card').forEach(c=>c.classList.remove('dragging'));document.querySelectorAll('.kanban-col').forEach(c=>c.classList.remove('drag-over'));}
+async function dropCard(ev,newStage){ev.preventDefault();ev.currentTarget.classList.remove('drag-over'); if(!draggingId)return; const deal=state.deals.find(d=>d.id===draggingId); if(!deal||deal.stage===newStage)return; deal.stage=newStage; renderKanban(); toast(`✓ ${deal.company} → ${newStage}`,'success'); await callAPI({action:'updateDeal',id:deal.id,stage:newStage,company:deal.company}); draggingId=null;}
+function renderList(){ const q=(document.getElementById('list-search').value||'').toLowerCase(),st=document.getElementById('list-stage').value,ow=document.getElementById('list-owner').value,ty=document.getElementById('list-type')?.value||'',bi=document.getElementById('list-billing')?.value||''; let filtered=state.deals.filter(d=>(!q||[d.company,d.contact,d.email,d.phone,d.type].some(v=>(v||'').toLowerCase().includes(q)))&&(!st||d.stage===st)&&(!ow||d.owner===ow)&&(!ty||d.type===ty)&&(!bi||(bi==='monthly'?isMonthly(d):!isMonthly(d)))); if(sortState.col){ filtered=[...filtered].sort((a,b)=>{let va=a[sortState.col]??'',vb=b[sortState.col]??''; if(['amount','probability','one_time_amount','monthly_fee'].includes(sortState.col)){va=Number(va)||0;vb=Number(vb)||0}else if(['created_at','close_date','renewal_date'].includes(sortState.col)){va=va?new Date(va).getTime():0;vb=vb?new Date(vb).getTime():0}else{const cmp=String(va).localeCompare(String(vb),'zh-Hant');return sortState.dir==='asc'?cmp:-cmp} const cmp=va<vb?-1:va>vb?1:0; return sortState.dir==='asc'?cmp:-cmp;}); } ['company','contact','billing_type','stage','one_time_amount','monthly_fee','owner','type','renewal_date'].forEach(k=>{const el=document.getElementById('sort-'+k); if(el)el.textContent=sortState.col===k?(sortState.dir==='asc'?'↑':'↓'):'↕'}); const perPage=10,total=filtered.length,pages=Math.ceil(total/perPage)||1; if(state.currentPage>pages)state.currentPage=1; const slice=filtered.slice((state.currentPage-1)*perPage,state.currentPage*perPage); document.getElementById('list-tbody').innerHTML=slice.map(d=>{const stageStyle=`background:${STAGE_BG[d.stage]};color:${STAGE_FG[d.stage]}`; return `<tr><td><strong>${esc(d.company)}</strong></td><td>${esc(d.contact)}</td><td><span class="billing-pill ${isMonthly(d)?'billing-monthly':'billing-one'}">${billingLabel(d)}</span></td><td><span class="stage-pill" style="${stageStyle}">${d.stage}</span></td><td style="font-family:var(--mono)">${getOneTime(d)?'NT$'+fmt(getOneTime(d)):'—'}</td><td style="font-family:var(--mono)">${getMonthly(d)?('NT$'+fmt(getMonthly(d))+'/月'):'—'}</td><td>${esc(d.owner||'')}</td><td>${esc(d.type||'')}</td><td>${friendlyDate(d.renewal_date)}</td><td style="display:flex;gap:6px"><button class="card-btn" onclick="openDealModal('${d.id}')">✏️</button><button class="card-btn" onclick="deleteDeal('${d.id}')">🗑️</button></td></tr>`}).join('')||`<tr><td colspan="10" style="text-align:center;padding:32px;color:var(--gray-400)">無符合資料</td></tr>`; const pg=document.getElementById('pagination'); pg.innerHTML=pages<=1?'':Array.from({length:pages},(_,i)=>i+1).map(p=>`<button class="page-btn ${p===state.currentPage?'active':''}" onclick="state.currentPage=${p};renderList()">${p}</button>`).join(''); }
+function updateOwnerFilters(){ const owners=CFG.owners; ['kanban-owner','list-owner'].forEach(id=>{const el=document.getElementById(id); const cur=el.value; el.innerHTML='<option value="">所有業務員</option>'+owners.map(o=>`<option ${o===cur?'selected':''}>${esc(o)}</option>`).join('')}); const fo=document.getElementById('f-owner'); if(fo)fo.innerHTML=owners.map(o=>`<option>${esc(o)}</option>`).join(''); }
+function updateBillingFields(){ const b=document.getElementById('f-billing')?.value||'one_time'; document.getElementById('billing-one-time')?.classList.toggle('hidden',b!=='one_time'); document.getElementById('billing-monthly')?.classList.toggle('hidden',b!=='monthly'); }
+function openDealModal(id,defaultStage){ state.editingId=id; const d=id?state.deals.find(x=>x.id===id):null; document.getElementById('modal-title').textContent=id?'編輯商機':'新增商機'; document.getElementById('f-company').value=d?.company||''; document.getElementById('f-contact').value=d?.contact||''; document.getElementById('f-phone').value=d?.phone||''; document.getElementById('f-email').value=d?.email||''; document.getElementById('f-stage').value=d?.stage||defaultStage||'潛在客戶'; document.getElementById('f-billing').value=d?.billing_type||'one_time'; document.getElementById('f-one-time-amount').value=d?getOneTime(d):''; document.getElementById('f-monthly-fee').value=d?getMonthly(d):''; document.getElementById('f-setup-fee').value=d?.setup_fee||''; document.getElementById('f-contract-end').value=d?.contract_end_date||''; document.getElementById('f-renewal-date').value=d?.renewal_date||''; document.getElementById('f-prob').value=d?.probability||50; document.getElementById('prob-val').textContent=(d?.probability||50)+'%'; document.getElementById('f-date').value=d?.close_date||''; document.getElementById('f-type').value=TYPE_OPTIONS.includes(d?.type)?d.type:'廟宇'; document.getElementById('f-notes').value=d?.notes||''; updateOwnerFilters(); if(d?.owner)document.getElementById('f-owner').value=d.owner; ['company','contact','email','amount'].forEach(k=>{const e=document.getElementById('e-'+k),f=document.getElementById('f-'+k); if(e)e.textContent=''; if(f)f.classList.remove('error')}); updateBillingFields(); document.getElementById('deal-modal').classList.add('open'); }
+async function saveDeal(){ let valid=true; ['company','contact'].forEach(k=>{const v=document.getElementById('f-'+k).value.trim(); if(!v){document.getElementById('e-'+k).textContent='必填欄位';document.getElementById('f-'+k).classList.add('error');valid=false}else{document.getElementById('e-'+k).textContent='';document.getElementById('f-'+k).classList.remove('error')}}); const email=document.getElementById('f-email').value.trim(); if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){document.getElementById('e-email').textContent='Email 格式不正確';document.getElementById('f-email').classList.add('error');valid=false} if(!valid)return; const billing=document.getElementById('f-billing').value; const oneTime=Number(document.getElementById('f-one-time-amount').value)||0; const monthly=Number(document.getElementById('f-monthly-fee').value)||0; const params={action:state.editingId?'updateDeal':'addDeal',id:state.editingId||'',company:document.getElementById('f-company').value.trim(),contact:document.getElementById('f-contact').value.trim(),phone:document.getElementById('f-phone').value.trim(),email:document.getElementById('f-email').value.trim(),stage:document.getElementById('f-stage').value,amount:billing==='monthly'?monthly:oneTime,probability:Number(document.getElementById('f-prob').value)||0,close_date:document.getElementById('f-date').value,owner:document.getElementById('f-owner').value,type:document.getElementById('f-type').value,notes:document.getElementById('f-notes').value.trim(),billing_type:billing,one_time_amount:oneTime,monthly_fee:monthly,setup_fee:Number(document.getElementById('f-setup-fee').value)||0,contract_end_date:document.getElementById('f-contract-end').value,renewal_date:document.getElementById('f-renewal-date').value}; const btn=document.getElementById('btn-save-deal'); btn.disabled=true;btn.textContent='⏳ 儲存中...'; if(state.editingId){const old=state.deals.find(d=>d.id===state.editingId); if(old)Object.assign(old,params)}else{state.deals.push({...params,id:Date.now().toString(),created_at:new Date().toISOString()})} closeModal('deal-modal'); renderAll(); toast(`✓ ${params.company} 已${state.editingId?'更新':'新增'}`,'success'); await callAPI(params); btn.disabled=false; btn.textContent='儲存'; }
+async function deleteDeal(id){ const deal=state.deals.find(d=>d.id===id); if(!deal)return; if(!confirm(`確定要刪除「${deal.company}」嗎？`))return; state.deals=state.deals.filter(d=>d.id!==id); renderAll(); toast(`🗑️ ${deal.company} 已刪除`,'success'); await callAPI({action:'deleteDeal',id}); }
+function importExcel(input){ const file=input.files[0]; if(!file)return; const reader=new FileReader(); reader.onload=function(e){ try{ const wb=XLSX.read(e.target.result,{type:'binary'}); const ws=wb.Sheets[wb.SheetNames[0]]; const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''}); if(!rows.length){toast('❌ 檔案無資料','error');input.value='';return} let startRow=0; const headerText=rows[0].map(v=>String(v||'').trim().toLowerCase()).join('|'); if(/公司|客戶|company|聯絡人|contact|計費|billing|型態|type/.test(headerText))startRow=1; const validStages=['潛在客戶','資格確認','報價中','已成交']; let imported=0,skipped=0; for(let i=startRow;i<rows.length;i++){const row=rows[i]; const company=String(row[0]||'').trim(),contact=String(row[1]||'').trim(); if(!company||!contact){skipped++;continue} const billingTxt=String(row[5]||'').trim(); const billing=(billingTxt.includes('月')||billingTxt==='monthly')?'monthly':'one_time'; const importedDeal={id:Date.now().toString()+'_'+i,company,contact,phone:String(row[2]||'').trim(),email:String(row[3]||'').trim(),stage:validStages.includes(String(row[4]||'').trim())?String(row[4]).trim():'潛在客戶',billing_type:billing,one_time_amount:Number(row[6])||0,monthly_fee:Number(row[7])||0,setup_fee:Number(row[8])||0,amount:billing==='monthly'?(Number(row[7])||0):(Number(row[6])||0),probability:50,close_date:String(row[9]||'').trim(),owner:String(row[10]||'').trim(),type:TYPE_OPTIONS.includes(String(row[11]||'').trim())?String(row[11]).trim():'廟宇',contract_end_date:String(row[12]||'').trim(),renewal_date:String(row[13]||'').trim(),notes:String(row[14]||'').trim(),created_at:new Date().toISOString()}; state.deals.push(importedDeal); if(CFG.url)callAPI({action:'addDeal',...importedDeal}); imported++;} if(imported>0){renderAll();toast(`✓ 成功匯入 ${imported} 筆${skipped?'（跳過 '+skipped+' 筆空白列）':''}`,'success')}else toast('❌ 無法匯入：請確認 A=客戶 B=聯絡人','error'); }catch(err){toast('❌ 匯入失敗：'+err.message,'error')} input.value='';}; reader.readAsBinaryString(file); }
+function openSettings(){ document.getElementById('s-url').value=CFG.url; document.getElementById('s-owners').value=CFG.owners.join('\n'); const g=CFG.goals; document.getElementById('s-goal-deals').value=g.deals; document.getElementById('s-goal-amount').value=g.amount; document.getElementById('s-goal-clients').value=g.clients; document.getElementById('settings-modal').classList.add('open'); }
+function saveSettings(){ const url=document.getElementById('s-url').value.trim(); const owners=document.getElementById('s-owners').value.split('\n').map(s=>s.trim()).filter(Boolean); const goals={deals:Number(document.getElementById('s-goal-deals').value)||10,amount:Number(document.getElementById('s-goal-amount').value)||2000000,clients:Number(document.getElementById('s-goal-clients').value)||15}; localStorage.setItem('crm_url',url); localStorage.setItem('crm_owners',owners.join(',')); localStorage.setItem('crm_goals',JSON.stringify(goals)); closeModal('settings-modal'); toast('✓ 設定已儲存','success'); if(url){setConn(true);syncData()} updateOwnerFilters();renderAll(); }
+function switchPage(name,btn){ document.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active')); document.getElementById('page-'+name).classList.add('active'); if(btn)btn.classList.add('active'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+function toast(msg,type='success'){ const el=document.createElement('div'); el.className='toast '+type; el.textContent=msg; document.getElementById('toast-wrap').appendChild(el); setTimeout(()=>{el.style.animation='toastOut .3s ease forwards'; setTimeout(()=>el.remove(),300)},3000); }
+function fmt(n){ n=Number(n)||0; if(n>=10000)return Math.round(n/10000)+'萬'; return n.toLocaleString(); }
+function friendlyDate(s){ if(!s)return ''; const d=new Date(s); if(isNaN(d))return s; return `${d.getMonth()+1}/${d.getDate()}`; }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 setInterval(()=>{ if(CFG.url) syncData(); }, 30000);
 renderAll();
 if (CFG.url) { setConn(true); syncData(); }
