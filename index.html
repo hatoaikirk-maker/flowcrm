@@ -479,11 +479,9 @@ input,select,textarea{font-family:var(--font)}
 <div class="toast-wrap" id="toast-wrap"></div>
 <script>
 
-const DEFAULT_OWNERS = [
-  {id:'owner_chen',name:'陳業務',short:'陳',color:'#6366f1',status:'active'},
-  {id:'owner_lin',name:'林業務',short:'林',color:'#ec4899',status:'active'},
-  {id:'owner_wang',name:'王業務',short:'王',color:'#14b8a6',status:'active'},
-];
+// v7：業務員不再用前端預設名單。
+// 所有業務員以 Google Sheets「業務員」分頁為準，避免不同電腦出現不同預設業務。
+const DEFAULT_OWNERS = [];
 const CFG = {
   get url()     { return localStorage.getItem('crm_url') || '' },
   get ownersData() { return getOwnersData(); },
@@ -497,12 +495,12 @@ const STAGE_FG    = { '潛在客戶':'#92400e','資格確認':'#1e40af','報價�
 const OWNER_COLORS = ['#6366f1','#ec4899','#14b8a6','#f97316','#8b5cf6','#06b6d4'];
 const TYPE_OPTIONS = ['廟宇','金融','食品','實體通路','交通','支付','人壽','農產'];
 const DEMO = [
-  {id:'1',company:'關渡宮',contact:'陳董',phone:'',email:'',stage:'報價中',amount:220000,one_time_amount:220000,monthly_fee:0,setup_fee:0,probability:71,close_date:'2026-05-20',owner:'林業務',type:'廟宇',billing_type:'one_time',notes:'',created_at:'2026-05-01'},
-  {id:'2',company:'士林慈誠宮',contact:'葉家伶',phone:'',email:'',stage:'報價中',amount:1999,one_time_amount:0,monthly_fee:1999,setup_fee:0,probability:84,close_date:'2026-05-17',owner:'陳業務',type:'廟宇',billing_type:'monthly',renewal_date:'2026-12-31',notes:'',created_at:'2026-05-03'},
-  {id:'3',company:'玉山銀行',contact:'吳宏達',phone:'',email:'',stage:'潛在客戶',amount:950000,one_time_amount:950000,monthly_fee:0,setup_fee:0,probability:30,close_date:'2026-08-10',owner:'王業務',type:'金融',billing_type:'one_time',notes:'',created_at:'2026-05-02'},
-  {id:'4',company:'全聯福利中心',contact:'劉美玲',phone:'',email:'',stage:'已成交',amount:350000,one_time_amount:350000,monthly_fee:0,setup_fee:0,probability:100,close_date:'2026-05-20',owner:'林業務',type:'實體通路',billing_type:'one_time',notes:'',created_at:'2026-04-20'},
-  {id:'5',company:'北港朝天宮',contact:'李組長',phone:'',email:'',stage:'報價中',amount:270000,one_time_amount:270000,monthly_fee:0,setup_fee:0,probability:60,close_date:'2026-07-05',owner:'陳業務',type:'廟宇',billing_type:'one_time',notes:'',created_at:'2026-05-06'},
-  {id:'6',company:'中華電信',contact:'張建國',phone:'',email:'',stage:'資格確認',amount:0,one_time_amount:0,monthly_fee:60000,setup_fee:120000,probability:45,close_date:'2026-07-20',owner:'王業務',type:'支付',billing_type:'monthly',renewal_date:'2027-01-31',notes:'',created_at:'2026-05-04'},
+  {id:'1',company:'關渡宮',contact:'陳董',phone:'',email:'',stage:'報價中',amount:220000,one_time_amount:220000,monthly_fee:0,setup_fee:0,probability:71,close_date:'2026-05-20',owner:'',type:'廟宇',billing_type:'one_time',notes:'',created_at:'2026-05-01'},
+  {id:'2',company:'士林慈誠宮',contact:'葉家伶',phone:'',email:'',stage:'報價中',amount:1999,one_time_amount:0,monthly_fee:1999,setup_fee:0,probability:84,close_date:'2026-05-17',owner:'',type:'廟宇',billing_type:'monthly',renewal_date:'2026-12-31',notes:'',created_at:'2026-05-03'},
+  {id:'3',company:'玉山銀行',contact:'吳宏達',phone:'',email:'',stage:'潛在客戶',amount:950000,one_time_amount:950000,monthly_fee:0,setup_fee:0,probability:30,close_date:'2026-08-10',owner:'',type:'金融',billing_type:'one_time',notes:'',created_at:'2026-05-02'},
+  {id:'4',company:'全聯福利中心',contact:'劉美玲',phone:'',email:'',stage:'已成交',amount:350000,one_time_amount:350000,monthly_fee:0,setup_fee:0,probability:100,close_date:'2026-05-20',owner:'',type:'實體通路',billing_type:'one_time',notes:'',created_at:'2026-04-20'},
+  {id:'5',company:'北港朝天宮',contact:'李組長',phone:'',email:'',stage:'報價中',amount:270000,one_time_amount:270000,monthly_fee:0,setup_fee:0,probability:60,close_date:'2026-07-05',owner:'',type:'廟宇',billing_type:'one_time',notes:'',created_at:'2026-05-06'},
+  {id:'6',company:'中華電信',contact:'張建國',phone:'',email:'',stage:'資格確認',amount:0,one_time_amount:0,monthly_fee:60000,setup_fee:120000,probability:45,close_date:'2026-07-20',owner:'',type:'支付',billing_type:'monthly',renewal_date:'2027-01-31',notes:'',created_at:'2026-05-04'},
 ];
 
 function getOwnersData(){
@@ -513,6 +511,20 @@ function getOwnersData(){
   setOwnersData(DEFAULT_OWNERS); return DEFAULT_OWNERS;
 }
 function setOwnersData(list){ localStorage.setItem('crm_owners_v2', JSON.stringify(list.map((o,i)=>({id:o.id||('owner_'+Date.now()+'_'+i),name:String(o.name||'').trim(),short:String(o.short||o.name||'?').trim().charAt(0)||'?',color:o.color||OWNER_COLORS[i%OWNER_COLORS.length],status:o.status==='inactive'?'inactive':'active',email:o.email||'',leave_date:o.leave_date||'',replacement_owner:o.replacement_owner||'',created_at:o.created_at||new Date().toISOString(),updated_at:new Date().toISOString()})).filter(o=>o.name))); }
+
+function clearDefaultOwnersIfOnlyDefault(){
+  const raw = localStorage.getItem('crm_owners_v2');
+  if (!raw) return;
+  try {
+    const list = JSON.parse(raw)||[];
+    const names = list.map(o=>String(o.name||'').trim()).sort().join(',');
+    if (names === ['王業務','林業務','陳業務'].sort().join(',')) {
+      localStorage.removeItem('crm_owners_v2');
+      localStorage.removeItem('crm_owners');
+    }
+  } catch(e) {}
+}
+clearDefaultOwnersIfOnlyDefault();
 function normalizeOwnerRow(r){ return {id:String(r[0]||('owner_'+Date.now())),name:String(r[1]||'').trim(),short:String(r[2]||r[1]||'?').trim().charAt(0)||'?',color:String(r[3]||'#6366f1'),status:String(r[4]||'active')==='inactive'?'inactive':'active',email:String(r[5]||''),leave_date:String(r[6]||''),replacement_owner:String(r[7]||''),created_at:String(r[8]||''),updated_at:String(r[9]||'')}; }
 function getOwnerProfile(name){ const n=String(name||'').trim(); return CFG.ownersData.find(o=>o.name===n) || (n?{name:n,short:n.charAt(0),color:'#98a2b3',status:'inactive'}:{name:'待分派',short:'待',color:'#d0d5dd',status:'unassigned'}); }
 function ownerAvatarHTML(name, extraClass=''){ const o=getOwnerProfile(name); const cls='owner-avatar '+extraClass+' '+(o.status==='inactive'?'inactive':o.status==='unassigned'?'unassigned':''); const title=o.status==='inactive'?`原負責業務：${o.name}（已停用）`:o.status==='unassigned'?'待分派':`負責業務：${o.name}`; return `<div class="${cls}" style="background:${o.color}" title="${esc(title)}">${esc(o.short||'?')}</div>`; }
